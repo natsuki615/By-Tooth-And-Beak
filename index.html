@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bird Diet Space — UMAP</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</head>
+<body>
+
+<h1>Bird Diet Space &mdash; UMAP (cosine distance)</h1>
+<p id="subtitle">Colored by dominant prey class &bull; scroll to zoom &bull; drag to pan &bull; hover for details</p>
+
+<div id="chart-wrap">
+  <svg id="chart"></svg>
+  <div id="legend"></div>
+</div>
+
+<p id="instructions">
+  Run with: <code style="color:#888">python3 -m http.server 8000</code> then open
+  <code style="color:#888">http://localhost:8000</code>
+</p>
+
+<div id="tooltip"></div>
+
+<script src="chart.js"></script>
+</body>
+</html>

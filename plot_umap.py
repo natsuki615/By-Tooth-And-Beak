@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-coords = pd.read_csv("umap_coords.csv", index_col=0)
-diet   = pd.read_csv("diet_vectors.csv", index_col=0)
+coords = pd.read_csv("data/ords.csv", index_col=0)
+diet   = pd.read_csv("data/diet_vectors.csv", index_col=0)
 
 # Dominant prey class per species (for coloring)
 dominant = diet.idxmax(axis=1)

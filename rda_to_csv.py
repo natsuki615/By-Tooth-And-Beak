@@ -1,7 +1,7 @@
 import pyreadr
 import os
 
-result = pyreadr.read_r("dietdb.rda")
+result = pyreadr.read_r("data/dietdb.rda")
 
 # .rda files can contain multiple objects — list them
 print(result.keys())

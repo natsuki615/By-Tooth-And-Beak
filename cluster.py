@@ -4,7 +4,7 @@ import umap
 import hdbscan
 
 # ── 1. Load data ──────────────────────────────────────────────────────────────
-df = pd.read_csv("dietdb.csv")
+df = pd.read_csv("data/dietdb.csv")
 
 # ── 2. Diet-fraction vector per species ───────────────────────────────────────
 # Drop rows with no Prey_Class data before grouping (19 species in the CSV have

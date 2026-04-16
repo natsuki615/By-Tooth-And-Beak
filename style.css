@@ -1,0 +1,101 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a1a2e;
+  color: #ddd;
+  font-family: "Inter", system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+h1 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #eee;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+#subtitle {
+  font-size: 0.78rem;
+  color: #888;
+  margin-bottom: 18px;
+}
+
+#chart-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+}
+
+/* dots */
+circle.dot { cursor: crosshair; }
+circle.dot:hover { stroke-width: 1.5px; }
+
+/* tooltip */
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: #12122a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px 13px;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  max-width: 220px;
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 10;
+}
+#tooltip.visible { opacity: 1; }
+#tooltip .sp-name { font-weight: 600; font-size: 0.85rem; color: #fff; margin-bottom: 4px; }
+#tooltip .prey-row { display: flex; justify-content: space-between; gap: 12px; }
+#tooltip .prey-row span:last-child { color: #aaa; }
+#tooltip .divider { border: none; border-top: 1px solid #333; margin: 5px 0; }
+#tooltip .cluster-tag {
+  display: inline-block;
+  margin-top: 5px;
+  background: #2a2a4a;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  color: #aaa;
+}
+
+/* legend */
+#legend {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(26,26,46,0.88);
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.76rem;
+  line-height: 1.9;
+  pointer-events: none;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+#instructions {
+  font-size: 0.72rem;
+  color: #555;
+  margin-top: 10px;
+}
