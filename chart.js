@@ -42,6 +42,8 @@ Promise.all([
   const coords = new Map(coordsRaw.map(d => [d.Common_Name, {
     x: d.x === "" ? null : +d.x,
     y: d.y === "" ? null : +d.y,
+    grid_x: d.grid_x === "" ? null : +d.grid_x,
+    grid_y: d.grid_y === "" ? null : +d.grid_y,
     cluster: d.cluster === "" ? null : +d.cluster,
   }]));
 
@@ -85,6 +87,15 @@ Promise.all([
     .domain([yExt[0] - pad, yExt[1] + pad])
     .range([H - MARGIN.bottom, MARGIN.top]);
 
+  const gxExt = d3.extent(known, d => +d.grid_x);
+  const gyExt = d3.extent(known, d => +d.grid_y);
+  const gxScale = d3.scaleLinear()
+    .domain([gxExt[0] - 0.5, gxExt[1] + 0.5])
+    .range([MARGIN.left, W - MARGIN.right]);
+  const gyScale = d3.scaleLinear()
+    .domain([gyExt[0] - 0.5, gyExt[1] + 0.5])
+    .range([H - MARGIN.bottom, MARGIN.top]);
+
   // ── Axes ──────────────────────────────────────────────────────────────────
   const xAxisG = plotG.append("g")
     .attr("transform", `translate(0,${H - MARGIN.bottom})`)
@@ -100,10 +111,10 @@ Promise.all([
     .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
     .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
 
-  svg.append("text").attr("x", W / 2).attr("y", H - 8)
+  const xLabel = svg.append("text").attr("x", W / 2).attr("y", H - 8)
     .attr("text-anchor", "middle").attr("fill", "#666").attr("font-size", "11px")
     .text("UMAP 1");
-  svg.append("text")
+  const yLabel = svg.append("text")
     .attr("transform", `translate(13,${H / 2}) rotate(-90)`)
     .attr("text-anchor", "middle").attr("fill", "#666").attr("font-size", "11px")
     .text("UMAP 2");
@@ -194,12 +205,17 @@ Promise.all([
     .on("mousemove",  moveTip)
     .on("mouseleave", (e) => { d3.select(e.currentTarget).attr("stroke-opacity", 0.55); hideTip(); });
 
+  // ── View toggle state ─────────────────────────────────────────────────────
+  let viewMode = "umap";
+
   // ── Zoom & pan ────────────────────────────────────────────────────────────
   const zoom = d3.zoom()
     .scaleExtent([0.5, 20])
     .on("zoom", ({ transform }) => {
-      const newX = transform.rescaleX(xScale);
-      const newY = transform.rescaleY(yScale);
+      const activeX = viewMode === "umap" ? xScale : gxScale;
+      const activeY = viewMode === "umap" ? yScale : gyScale;
+      const newX = transform.rescaleX(activeX);
+      const newY = transform.rescaleY(activeY);
 
       xAxisG.call(d3.axisBottom(newX).ticks(8).tickSize(-H + MARGIN.top + MARGIN.bottom))
         .call(g => g.select(".domain").remove())
@@ -212,8 +228,8 @@ Promise.all([
         .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
 
       knownDots
-        .attr("cx", d => newX(+d.x))
-        .attr("cy", d => newY(+d.y));
+        .attr("cx", d => viewMode === "umap" ? newX(+d.x)      : newX(+d.grid_x))
+        .attr("cy", d => viewMode === "umap" ? newY(+d.y)      : newY(+d.grid_y));
 
       noDots
         .attr("cx", () => newX(xNoData))
@@ -225,6 +241,45 @@ Promise.all([
     });
 
   svg.call(zoom);
+
+  // ── View toggle button ────────────────────────────────────────────────────
+  const toggleBtn = document.createElement("button");
+  toggleBtn.id = "view-toggle";
+  toggleBtn.textContent = "Grid View";
+  document.getElementById("chart-wrap").insertAdjacentElement("afterend", toggleBtn);
+
+  toggleBtn.addEventListener("click", () => {
+    const newMode = viewMode === "umap" ? "grid" : "umap";
+    toggleBtn.textContent = newMode === "umap" ? "Grid View" : "UMAP View";
+
+    // Reset zoom using current mode so dots land at unzoomed positions first
+    svg.call(zoom.transform, d3.zoomIdentity);
+
+    viewMode = newMode;
+    const t = d3.transition().duration(600).ease(d3.easeCubicInOut);
+
+    if (viewMode === "grid") {
+      knownDots.transition(t)
+        .attr("cx", d => gxScale(+d.grid_x))
+        .attr("cy", d => gyScale(+d.grid_y));
+      noDots.transition(t).attr("opacity", 0);
+      dotsG.select(".no-data-divider").transition(t).attr("opacity", 0);
+      xLabel.transition(t).attr("opacity", 0);
+      yLabel.transition(t).attr("opacity", 0);
+      xAxisG.transition(t).attr("opacity", 0);
+      yAxisG.transition(t).attr("opacity", 0);
+    } else {
+      knownDots.transition(t)
+        .attr("cx", d => xScale(+d.x))
+        .attr("cy", d => yScale(+d.y));
+      noDots.transition(t).attr("opacity", 1);
+      dotsG.select(".no-data-divider").transition(t).attr("opacity", 1);
+      xLabel.transition(t).attr("opacity", 1);
+      yLabel.transition(t).attr("opacity", 1);
+      xAxisG.transition(t).attr("opacity", 1);
+      yAxisG.transition(t).attr("opacity", 1);
+    }
+  });
 
   // ── Legend ────────────────────────────────────────────────────────────────
   const presentClasses = [...new Set(dominantMap.values())];
