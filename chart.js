@@ -1,16 +1,16 @@
 const COLOR_MAP = {
-  "Insecta":       "#f4a261",
+  "Insecta": "#f4a261",
   "Magnoliopsida": "#2a9d8f",
-  "Teleostei":     "#457b9d",
-  "Mammalia":      "#e76f51",
-  "Malacostraca":  "#8ecae6",
-  "Cephalopoda":   "#6a4c93",
+  "Teleostei": "#457b9d",
+  "Mammalia": "#e76f51",
+  "Malacostraca": "#8ecae6",
+  "Cephalopoda": "#6a4c93",
   "Euchelicerata": "#a8dadc",
-  "Gastropoda":    "#c9ada7",
-  "Bivalvia":      "#b5e48c",
-  "Pinopsida":     "#1b4332",
-  "Other":         "#d3d3d3",
-  "No data":       "none",
+  "Gastropoda": "#c9ada7",
+  "Bivalvia": "#b5e48c",
+  "Pinopsida": "#1b4332",
+  "Other": "#d3d3d3",
+  "No data": "none",
 };
 
 const W = 1000, H = 720;
@@ -22,8 +22,10 @@ const svg = d3.select("#chart")
 
 const plotG = svg.append("g").attr("class", "plot");
 
-// Clip path so dots don't bleed outside axes
-svg.append("defs").append("clipPath").attr("id", "plot-clip")
+// clip path so dots don't bleed outside axes
+svg.append("defs")
+  .append("clipPath")
+    .attr("id", "plot-clip")
   .append("rect")
     .attr("x", MARGIN.left).attr("y", MARGIN.top)
     .attr("width", W - MARGIN.left - MARGIN.right)
@@ -37,8 +39,7 @@ Promise.all([
   d3.csv("data/umap_coords.csv"),
   d3.csv("data/diet_vectors.csv"),
 ]).then(([coordsRaw, dietRaw]) => {
-
-  // ── Parse coords ──────────────────────────────────────────────────────────
+  // parse coords 
   const coords = new Map(coordsRaw.map(d => [d.Common_Name, {
     x: d.x === "" ? null : +d.x,
     y: d.y === "" ? null : +d.y,
@@ -47,14 +48,15 @@ Promise.all([
     cluster: d.cluster === "" ? null : +d.cluster,
   }]));
 
-  // ── Parse diet & compute dominant prey class ───────────────────────────────
+  // parse diet & compute dominant prey class 
   const preyClasses = dietRaw.columns.filter(c => c !== "Common_Name");
   const dominantMap = new Map();
   const topPreyMap  = new Map(); // top 5 prey fractions per species
 
   dietRaw.forEach(row => {
     const sp = row.Common_Name;
-    let maxFrac = -1, maxCls = "Other";
+    let maxFrac = -1;
+    let maxCls = "Other";
     const fracs = [];
     preyClasses.forEach(cls => {
       const v = +row[cls];
@@ -66,71 +68,85 @@ Promise.all([
     dominantMap.set(sp, maxFrac > 0 ? maxCls : "Other");
   });
 
-  // Collapse rare classes (< 10 species) → "Other"
+  // collapse rare classes (< 10 species) into "Other"
   const classCounts = new Map();
   dominantMap.forEach(cls => classCounts.set(cls, (classCounts.get(cls) || 0) + 1));
   dominantMap.forEach((cls, sp) => {
     if ((classCounts.get(cls) || 0) < 10) dominantMap.set(sp, "Other");
   });
 
-  // ── Scales ────────────────────────────────────────────────────────────────
+  // scales 
   const known = coordsRaw.filter(d => d.x !== "");
   const xExt = d3.extent(known, d => +d.x);
   const yExt = d3.extent(known, d => +d.y);
-  const pad = 0.5;
+  const padding = 0.5;
 
   const xScale = d3.scaleLinear()
-    .domain([xExt[0] - pad, xExt[1] + pad + 3.5]) // room for no-data strip
+    .domain([xExt[0] - padding, xExt[1] + padding]) // room for no-data strip
     .range([MARGIN.left, W - MARGIN.right]);
 
   const yScale = d3.scaleLinear()
-    .domain([yExt[0] - pad, yExt[1] + pad])
+    .domain([yExt[0] - padding, yExt[1] + padding])
     .range([H - MARGIN.bottom, MARGIN.top]);
 
   const gxExt = d3.extent(known, d => +d.grid_x);
   const gyExt = d3.extent(known, d => +d.grid_y);
   const gxScale = d3.scaleLinear()
-    .domain([gxExt[0] - 0.5, gxExt[1] + 0.5])
+    .domain([gxExt[0] - padding, gxExt[1] + padding])
     .range([MARGIN.left, W - MARGIN.right]);
   const gyScale = d3.scaleLinear()
-    .domain([gyExt[0] - 0.5, gyExt[1] + 0.5])
+    .domain([gyExt[0] - padding, gyExt[1] + padding])
     .range([H - MARGIN.bottom, MARGIN.top]);
 
-  // ── Axes ──────────────────────────────────────────────────────────────────
-  const xAxisG = plotG.append("g")
-    .attr("transform", `translate(0,${H - MARGIN.bottom})`)
-    .call(d3.axisBottom(xScale).ticks(8).tickSize(-H + MARGIN.top + MARGIN.bottom))
-    .call(g => g.select(".domain").remove())
-    .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
-    .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
+  // axes
+  // const xAxisG = plotG.append("g")
+  //   .attr("transform", `translate(0,${H - MARGIN.bottom})`)
+  //   .call(d3.axisBottom(xScale).ticks(8).tickSize(-H + MARGIN.top + MARGIN.bottom))
+  //   .call(g => g.select(".domain").remove())
+  //   .call(g => g.selectAll(".tick line")
+  //     .attr("stroke", "#2a2a4a"))
+  //   .call(g => g.selectAll(".tick text")
+  //     .attr("fill", "#777")
+  //     .attr("font-size", "10px"));
 
-  const yAxisG = plotG.append("g")
-    .attr("transform", `translate(${MARGIN.left},0)`)
-    .call(d3.axisLeft(yScale).ticks(8).tickSize(-W + MARGIN.left + MARGIN.right))
-    .call(g => g.select(".domain").remove())
-    .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
-    .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
+  // const yAxisG = plotG.append("g")
+  //   .attr("transform", `translate(${MARGIN.left},0)`)
+  //   .call(d3.axisLeft(yScale).ticks(8).tickSize(-W + MARGIN.left + MARGIN.right))
+  //   .call(g => g.select(".domain").remove())
+  //   .call(g => g.selectAll(".tick line")
+  //     .attr("stroke", "#2a2a4a"))
+  //   .call(g => g.selectAll(".tick text")
+  //     .attr("fill", "#777")
+  //     .attr("font-size", "10px"));
 
-  const xLabel = svg.append("text").attr("x", W / 2).attr("y", H - 8)
-    .attr("text-anchor", "middle").attr("fill", "#666").attr("font-size", "11px")
-    .text("UMAP 1");
-  const yLabel = svg.append("text")
-    .attr("transform", `translate(13,${H / 2}) rotate(-90)`)
-    .attr("text-anchor", "middle").attr("fill", "#666").attr("font-size", "11px")
-    .text("UMAP 2");
+  // const xLabel = svg.append("text")
+  //   .attr("x", W / 2)
+  //   .attr("y", H - 8)
+  //   .attr("text-anchor", "middle")
+  //   .attr("fill", "#666")
+  //   .attr("font-size", "11px")
+  //   .text("UMAP 1");
+  // const yLabel = svg.append("text")
+  //   .attr("transform", `translate(13,${H / 2}) rotate(-90)`)
+  //   .attr("text-anchor", "middle")
+  //   .attr("fill", "#666")
+  //   .attr("font-size", "11px")
+  //   .text("UMAP 2");
 
-  // ── No-data divider line ──────────────────────────────────────────────────
+  // no-data divider line 
   const noDataSpecies = coordsRaw.filter(d => d.x === "");
   const xDivider = xExt[1] + 1.3;
 
   dotsG.append("line")
     .attr("class", "no-data-divider")
-    .attr("x1", xScale(xDivider)).attr("x2", xScale(xDivider))
-    .attr("y1", yScale(yExt[1] + pad)).attr("y2", yScale(yExt[0] - pad))
-    .attr("stroke", "rgba(255,255,255,0.12)").attr("stroke-dasharray", "4 4").attr("stroke-width", 1);
+    .attr("x1", xScale(xDivider))
+    .attr("x2", xScale(xDivider))
+    .attr("y1", yScale(yExt[1] + padding))
+    .attr("y2", yScale(yExt[0] - padding))
+    .attr("stroke", "rgba(255,255,255,0.12)")
+    .attr("stroke-dasharray", "4 4").attr("stroke-width", 1);
 
-  // ── Dots ─────────────────────────────────────────────────────────────────
-  // Known-diet species
+  // dots - known diet species
   const knownDots = dotsG.selectAll("circle.dot.known")
     .data(known)
     .join("circle")
@@ -142,7 +158,7 @@ Promise.all([
       .attr("fill-opacity", 0.8)
       .attr("stroke", "none");
 
-  // No-data species
+  // dots - no data species
   const noDataYs = d3.range(noDataSpecies.length).map(i =>
     yExt[0] + (yExt[1] - yExt[0]) * i / Math.max(noDataSpecies.length - 1, 1)
   );
@@ -160,7 +176,7 @@ Promise.all([
       .attr("stroke-opacity", 0.55)
       .attr("stroke-width", 1.2);
 
-  // ── Tooltip ───────────────────────────────────────────────────────────────
+  // tooltip 
   function showTip(event, sp, isNoData) {
     const c = coords.get(sp);
     let html = `<div class="sp-name">${sp}</div>`;
@@ -205,10 +221,10 @@ Promise.all([
     .on("mousemove",  moveTip)
     .on("mouseleave", (e) => { d3.select(e.currentTarget).attr("stroke-opacity", 0.55); hideTip(); });
 
-  // ── View toggle state ─────────────────────────────────────────────────────
+  // view toggle state 
   let viewMode = "umap";
 
-  // ── Zoom & pan ────────────────────────────────────────────────────────────
+  // zoom & pan 
   const zoom = d3.zoom()
     .scaleExtent([0.5, 20])
     .on("zoom", ({ transform }) => {
@@ -217,32 +233,34 @@ Promise.all([
       const newX = transform.rescaleX(activeX);
       const newY = transform.rescaleY(activeY);
 
-      xAxisG.call(d3.axisBottom(newX).ticks(8).tickSize(-H + MARGIN.top + MARGIN.bottom))
-        .call(g => g.select(".domain").remove())
-        .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
-        .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
+      // xAxisG.call(d3.axisBottom(newX).ticks(8).tickSize(-H + MARGIN.top + MARGIN.bottom))
+      //   .call(g => g.select(".domain").remove())
+      //   .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
+      //   .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
 
-      yAxisG.call(d3.axisLeft(newY).ticks(8).tickSize(-W + MARGIN.left + MARGIN.right))
-        .call(g => g.select(".domain").remove())
-        .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
-        .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
+      // yAxisG.call(d3.axisLeft(newY).ticks(8).tickSize(-W + MARGIN.left + MARGIN.right))
+      //   .call(g => g.select(".domain").remove())
+      //   .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
+      //   .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
 
       knownDots
-        .attr("cx", d => viewMode === "umap" ? newX(+d.x)      : newX(+d.grid_x))
-        .attr("cy", d => viewMode === "umap" ? newY(+d.y)      : newY(+d.grid_y));
+        .attr("cx", d => viewMode === "umap" ? newX(+d.x): newX(+d.grid_x))
+        .attr("cy", d => viewMode === "umap" ? newY(+d.y): newY(+d.grid_y));
 
       noDots
         .attr("cx", () => newX(xNoData))
         .attr("cy", (d, i) => newY(noDataYs[i]));
 
       dotsG.select(".no-data-divider")
-        .attr("x1", newX(xDivider)).attr("x2", newX(xDivider))
-        .attr("y1", newY(yExt[1] + pad)).attr("y2", newY(yExt[0] - pad));
+        .attr("x1", newX(xDivider))
+        .attr("x2", newX(xDivider))
+        .attr("y1", newY(yExt[1] + padding))
+        .attr("y2", newY(yExt[0] - padding));
     });
 
   svg.call(zoom);
 
-  // ── View toggle button ────────────────────────────────────────────────────
+  // toggle between umap and grid view
   const toggleBtn = document.createElement("button");
   toggleBtn.id = "view-toggle";
   toggleBtn.textContent = "Grid View";
@@ -264,24 +282,24 @@ Promise.all([
         .attr("cy", d => gyScale(+d.grid_y));
       noDots.transition(t).attr("opacity", 0);
       dotsG.select(".no-data-divider").transition(t).attr("opacity", 0);
-      xLabel.transition(t).attr("opacity", 0);
-      yLabel.transition(t).attr("opacity", 0);
-      xAxisG.transition(t).attr("opacity", 0);
-      yAxisG.transition(t).attr("opacity", 0);
+      // xLabel.transition(t).attr("opacity", 0);
+      // yLabel.transition(t).attr("opacity", 0);
+      // xAxisG.transition(t).attr("opacity", 0);
+      // yAxisG.transition(t).attr("opacity", 0);
     } else {
       knownDots.transition(t)
         .attr("cx", d => xScale(+d.x))
         .attr("cy", d => yScale(+d.y));
       noDots.transition(t).attr("opacity", 1);
       dotsG.select(".no-data-divider").transition(t).attr("opacity", 1);
-      xLabel.transition(t).attr("opacity", 1);
-      yLabel.transition(t).attr("opacity", 1);
-      xAxisG.transition(t).attr("opacity", 1);
-      yAxisG.transition(t).attr("opacity", 1);
+      // xLabel.transition(t).attr("opacity", 1);
+      // yLabel.transition(t).attr("opacity", 1);
+      // xAxisG.transition(t).attr("opacity", 1);
+      // yAxisG.transition(t).attr("opacity", 1);
     }
   });
 
-  // ── Legend ────────────────────────────────────────────────────────────────
+  // legend 
   const presentClasses = [...new Set(dominantMap.values())];
   const legendOrder = Object.keys(COLOR_MAP).filter(c => presentClasses.includes(c) || c === "No data");
 

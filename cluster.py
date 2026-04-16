@@ -23,7 +23,7 @@ diet = diet.div(diet.sum(axis=1), axis=0)
 no_data_species = sorted(set(all_species) - set(diet.index))
 print(f"Diet matrix shape: {diet.shape}  ({len(no_data_species)} species have no prey data)")
 
-# 3. umap → 2d coords per species 
+# 3. umap to 2d coords per species 
 reducer = umap.UMAP(n_components=2, random_state=42, metric="cosine")
 coords = reducer.fit_transform(diet.values)   # shape (n_known_species, 2)
 
@@ -47,8 +47,8 @@ print(no_data_species)
 known_coords = coords_df.dropna()
 
 clusterer = hdbscan.HDBSCAN(
-    min_cluster_size=10,   # smallest meaningful diet group
-    min_samples=5,         # controls how conservative outlier detection is
+    min_cluster_size=10, # smallest meaningful diet group
+    min_samples=5, # controls how conservative outlier detection is
     metric="euclidean",
 )
 labels = clusterer.fit_predict(known_coords.values)  # -1 = noise/outlier
@@ -68,8 +68,8 @@ n_clusters = (labels >= 0).sum()
 n_noise    = (labels == -1).sum()
 print(f"\nHDBSCAN: {labels.max() + 1} clusters, {n_noise} noise points")
 
-# 5. Rasterfairy grid layout 
-# transformPointCloud2D expects a (n, 2) float array; run only on known species.
+# 5. rasterfairy grid layout 
+# transformPointCloud2D expects a (n, 2) float array, run only on known species.
 grid_xy, (grid_cols, grid_rows) = rasterfairy.transformPointCloud2D(
     known_coords[["x", "y"]].values
 )

@@ -14,17 +14,17 @@ top_classes = dominant.value_counts()[dominant.value_counts() >= 10].index.tolis
 dominant = dominant.apply(lambda c: c if c in top_classes else "Other")
 
 COLOR_MAP = {
-    "Insecta":       "#f4a261",   # amber
-    "Magnoliopsida": "#2a9d8f",   # teal  (flowering plants)
-    "Teleostei":     "#457b9d",   # steel blue  (fish)
-    "Mammalia":      "#e76f51",   # burnt orange
-    "Malacostraca":  "#8ecae6",   # sky blue  (crustaceans)
-    "Cephalopoda":   "#6a4c93",   # purple  (squid/octopus)
-    "Euchelicerata": "#a8dadc",   # pale teal  (spiders/mites)
-    "Gastropoda":    "#c9ada7",   # mauve  (snails)
-    "Bivalvia":      "#b5e48c",   # light green  (clams/mussels)
-    "Pinopsida":     "#1b4332",   # dark green  (conifers)
-    "Other":         "#d3d3d3",   # light grey
+    "Insecta":"#f4a261",   
+    "Magnoliopsida": "#2a9d8f",
+    "Teleostei":"#457b9d",
+    "Mammalia":"#e76f51", 
+    "Malacostraca": "#8ecae6",
+    "Cephalopoda": "#6a4c93", 
+    "Euchelicerata": "#a8dadc",
+    "Gastropoda": "#c9ada7",
+    "Bivalvia": "#b5e48c",
+    "Pinopsida": "#1b4332",
+    "Other": "#d3d3d3",
 }
 
 fig, ax = plt.subplots(figsize=(12, 9))
