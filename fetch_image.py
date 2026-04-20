@@ -36,7 +36,7 @@ def get_cutout(name, image_url):
     res = requests.get(image_url)
     img = Image.open(BytesIO(res.content))
     cutout = remove(img)
-    safe_name = name.replace(" ", "_").replace("'", "")
+    safe_name = name.replace(" ", "_").replace("'", "").replace("/", "_")
     cutout.save(os.path.join(CUTOUTS_DIR, f"{safe_name}.png"))
     print(f"Saved: {safe_name}.png")
 
@@ -44,6 +44,9 @@ def get_cutout(name, image_url):
 def main():
     for _, row in birds.iterrows():
         common_name = row["Common_Name"]
+        safe_name = common_name.replace(" ", "_").replace("'", "").replace("/", "_")
+        if os.path.exists(os.path.join(CUTOUTS_DIR, f"{safe_name}.png")):
+            continue
         species_code = get_species_code(common_name)
         if species_code is None:
             print(f"No species code found for: {common_name}")

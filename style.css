@@ -7,8 +7,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
-  padding: 24px 16px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 16px 16px 8px;
 }
 
 h1 {
@@ -28,20 +29,22 @@ h1 {
 #chart-wrap {
   position: relative;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1400px;
+  flex: 1;
+  min-height: 0;
 }
 
 svg {
   display: block;
   width: 100%;
+  height: 100%;
   background: #1a1a2e;
   border: 1px solid #2a2a4a;
   border-radius: 6px;
 }
 
-/* dots */
-circle.dot { cursor: crosshair; }
-circle.dot:hover { stroke-width: 1.5px; }
+/* dots / bird images */
+circle.dot, image.dot { cursor: crosshair; }
 
 /* tooltip */
 #tooltip {
@@ -53,7 +56,7 @@ circle.dot:hover { stroke-width: 1.5px; }
   padding: 10px 13px;
   font-size: 0.78rem;
   line-height: 1.6;
-  max-width: 220px;
+  max-width: 180px;
   opacity: 0;
   transition: opacity 0.1s;
   z-index: 10;
@@ -63,6 +66,13 @@ circle.dot:hover { stroke-width: 1.5px; }
 #tooltip .prey-row { display: flex; justify-content: space-between; gap: 12px; }
 #tooltip .prey-row span:last-child { color: #aaa; }
 #tooltip .divider { border: none; border-top: 1px solid #333; margin: 5px 0; }
+.tip-bird {
+  display: block;
+  width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
 #tooltip .cluster-tag {
   display: inline-block;
   margin-top: 5px;
@@ -95,7 +105,9 @@ circle.dot:hover { stroke-width: 1.5px; }
 }
 
 #view-toggle {
-  margin-top: 12px;
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
   background: #2a2a4a;
   color: #ccc;
   border: 1px solid #444;
@@ -105,14 +117,11 @@ circle.dot:hover { stroke-width: 1.5px; }
   font-family: inherit;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  z-index: 5;
 }
 #view-toggle:hover {
   background: #3a3a6a;
   color: #fff;
 }
 
-#instructions {
-  font-size: 0.72rem;
-  color: #555;
-  margin-top: 10px;
-}
+#instructions { display: none; }

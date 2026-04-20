@@ -15,6 +15,11 @@ const COLOR_MAP = {
 
 const W = 1000, H = 720;
 const MARGIN = { top: 30, right: 120, bottom: 50, left: 55 };
+const IMG_SIZE = 10; // half-width/height of bird image in svg units
+
+function safeName(name) {
+  return name.replace(/ /g, "_").replace(/'/g, "").replace(/\//g, "_");
+}
 
 const svg = d3.select("#chart")
   .attr("viewBox", `0 0 ${W} ${H}`)
@@ -179,7 +184,9 @@ Promise.all([
   // tooltip 
   function showTip(event, sp, isNoData) {
     const c = coords.get(sp);
-    let html = `<div class="sp-name">${sp}</div>`;
+    const imgSrc = `cutouts/${safeName(sp)}.png`;
+    let html = `<img src="${imgSrc}" class="tip-bird" onerror="this.style.display='none'">`;
+    html += `<div class="sp-name">${sp}</div>`;
 
     if (isNoData) {
       html += `<div style="color:#888;font-size:0.75rem">No diet data available</div>`;
@@ -244,8 +251,8 @@ Promise.all([
       //   .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
 
       knownDots
-        .attr("cx", d => viewMode === "umap" ? newX(+d.x): newX(+d.grid_x))
-        .attr("cy", d => viewMode === "umap" ? newY(+d.y): newY(+d.grid_y));
+        .attr("cx", d => viewMode === "umap" ? newX(+d.x) : newX(+d.grid_x))
+        .attr("cy", d => viewMode === "umap" ? newY(+d.y) : newY(+d.grid_y));
 
       noDots
         .attr("cx", () => newX(xNoData))
@@ -264,7 +271,7 @@ Promise.all([
   const toggleBtn = document.createElement("button");
   toggleBtn.id = "view-toggle";
   toggleBtn.textContent = "Grid View";
-  document.getElementById("chart-wrap").insertAdjacentElement("afterend", toggleBtn);
+  document.getElementById("chart-wrap").appendChild(toggleBtn);
 
   toggleBtn.addEventListener("click", () => {
     const newMode = viewMode === "umap" ? "grid" : "umap";
