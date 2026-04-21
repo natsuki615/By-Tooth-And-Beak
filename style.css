@@ -43,7 +43,7 @@ svg {
   border-radius: 6px;
 }
 
-/* dots / bird images */
+/* dots */
 circle.dot, image.dot { cursor: crosshair; }
 
 /* tooltip */

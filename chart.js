@@ -1,14 +1,15 @@
 const COLOR_MAP = {
   "Insecta": "#f4a261",
   "Magnoliopsida": "#2a9d8f",
-  "Teleostei": "#457b9d",
-  "Mammalia": "#e76f51",
+  "Teleostei": "#1b628f",
+  "Mammalia": "#e5603f",
   "Malacostraca": "#8ecae6",
   "Cephalopoda": "#6a4c93",
-  "Euchelicerata": "#a8dadc",
-  "Gastropoda": "#c9ada7",
-  "Bivalvia": "#b5e48c",
-  "Pinopsida": "#1b4332",
+  "Euchelicerata": "#6ed333",
+  "Gastropoda": "#8f584c",
+  "Bivalvia": "#c7f69e",
+  "Pinopsida": "#004e2d",
+  "Aves": "#fcbd1d",
   "Other": "#d3d3d3",
   "No data": "none",
 };
@@ -16,9 +17,15 @@ const COLOR_MAP = {
 const W = 1000, H = 720;
 const MARGIN = { top: 30, right: 120, bottom: 50, left: 55 };
 const IMG_SIZE = 10; // half-width/height of bird image in svg units
+const DOT_R = 5; // half-size of dot image (matches old circle radius)
 
 function safeName(name) {
   return name.replace(/ /g, "_").replace(/'/g, "").replace(/\//g, "_");
+}
+
+function dotImg(cls) {
+  const hex = (COLOR_MAP[cls] ?? "#d3d3d3").slice(1);
+  return `dots/${hex}.png`;
 }
 
 const svg = d3.select("#chart")
@@ -75,9 +82,11 @@ Promise.all([
 
   // collapse rare classes (< 10 species) into "Other"
   const classCounts = new Map();
-  dominantMap.forEach(cls => classCounts.set(cls, (classCounts.get(cls) || 0) + 1));
+  dominantMap.forEach(cls => 
+    classCounts.set(cls, (classCounts.get(cls) || 0) + 1));
   dominantMap.forEach((cls, sp) => {
-    if ((classCounts.get(cls) || 0) < 10) dominantMap.set(sp, "Other");
+    if ((classCounts.get(cls) || 0) < 10) 
+      dominantMap.set(sp, "Other");
   });
 
   // scales 
@@ -103,41 +112,6 @@ Promise.all([
     .domain([gyExt[0] - padding, gyExt[1] + padding])
     .range([H - MARGIN.bottom, MARGIN.top]);
 
-  // axes
-  // const xAxisG = plotG.append("g")
-  //   .attr("transform", `translate(0,${H - MARGIN.bottom})`)
-  //   .call(d3.axisBottom(xScale).ticks(8).tickSize(-H + MARGIN.top + MARGIN.bottom))
-  //   .call(g => g.select(".domain").remove())
-  //   .call(g => g.selectAll(".tick line")
-  //     .attr("stroke", "#2a2a4a"))
-  //   .call(g => g.selectAll(".tick text")
-  //     .attr("fill", "#777")
-  //     .attr("font-size", "10px"));
-
-  // const yAxisG = plotG.append("g")
-  //   .attr("transform", `translate(${MARGIN.left},0)`)
-  //   .call(d3.axisLeft(yScale).ticks(8).tickSize(-W + MARGIN.left + MARGIN.right))
-  //   .call(g => g.select(".domain").remove())
-  //   .call(g => g.selectAll(".tick line")
-  //     .attr("stroke", "#2a2a4a"))
-  //   .call(g => g.selectAll(".tick text")
-  //     .attr("fill", "#777")
-  //     .attr("font-size", "10px"));
-
-  // const xLabel = svg.append("text")
-  //   .attr("x", W / 2)
-  //   .attr("y", H - 8)
-  //   .attr("text-anchor", "middle")
-  //   .attr("fill", "#666")
-  //   .attr("font-size", "11px")
-  //   .text("UMAP 1");
-  // const yLabel = svg.append("text")
-  //   .attr("transform", `translate(13,${H / 2}) rotate(-90)`)
-  //   .attr("text-anchor", "middle")
-  //   .attr("fill", "#666")
-  //   .attr("font-size", "11px")
-  //   .text("UMAP 2");
-
   // no-data divider line 
   const noDataSpecies = coordsRaw.filter(d => d.x === "");
   const xDivider = xExt[1] + 1.3;
@@ -152,16 +126,15 @@ Promise.all([
     .attr("stroke-dasharray", "4 4").attr("stroke-width", 1);
 
   // dots - known diet species
-  const knownDots = dotsG.selectAll("circle.dot.known")
+  const knownDots = dotsG.selectAll("image.dot.known")
     .data(known)
-    .join("circle")
+    .join("image")
       .attr("class", "dot known")
-      .attr("cx", d => xScale(+d.x))
-      .attr("cy", d => yScale(+d.y))
-      .attr("r", 5)
-      .attr("fill", d => COLOR_MAP[dominantMap.get(d.Common_Name)] ?? "#d3d3d3")
-      .attr("fill-opacity", 0.8)
-      .attr("stroke", "none");
+      .attr("href", d => dotImg(dominantMap.get(d.Common_Name)))
+      .attr("x", d => xScale(+d.x) - DOT_R)
+      .attr("y", d => yScale(+d.y) - DOT_R)
+      .attr("width",  DOT_R * 2)
+      .attr("height", DOT_R * 2);
 
   // dots - no data species
   const noDataYs = d3.range(noDataSpecies.length).map(i =>
@@ -169,17 +142,15 @@ Promise.all([
   );
   const xNoData = xExt[1] + 2.5;
 
-  const noDots = dotsG.selectAll("circle.dot.nodata")
+  const noDots = dotsG.selectAll("image.dot.nodata")
     .data(noDataSpecies)
-    .join("circle")
+    .join("image")
       .attr("class", "dot nodata")
-      .attr("cx", () => xScale(xNoData))
-      .attr("cy", (d, i) => yScale(noDataYs[i]))
-      .attr("r", 5)
-      .attr("fill", "none")
-      .attr("stroke", "white")
-      .attr("stroke-opacity", 0.55)
-      .attr("stroke-width", 1.2);
+      .attr("href", "dots/nodata.png")
+      .attr("x", () => xScale(xNoData) - DOT_R)
+      .attr("y", (_, i) => yScale(noDataYs[i]) - DOT_R)
+      .attr("width",  DOT_R * 2)
+      .attr("height", DOT_R * 2);
 
   // tooltip 
   function showTip(event, sp, isNoData) {
@@ -219,19 +190,27 @@ Promise.all([
   function hideTip() { tooltip.classList.remove("visible"); }
 
   knownDots
-    .on("mouseenter", (e, d) => { d3.select(e.currentTarget).attr("stroke", "white").attr("stroke-width", 1.5); showTip(e, d.Common_Name, false); })
+    .on("mouseenter", (e, d) => { 
+      d3.select(e.currentTarget).attr("opacity", 0.6); showTip(e, d.Common_Name, false); })
     .on("mousemove",  moveTip)
-    .on("mouseleave", (e) => { d3.select(e.currentTarget).attr("stroke", "none"); hideTip(); });
+    .on("mouseleave", (e) => { d3.select(e.currentTarget).attr("opacity", 1); hideTip(); })
+    .on("click", (_, d) => {
+      // click handler for animation
+      if (viewMode !== "grid") return;
+      const pos = window.getScreenPos(+d.grid_x, +d.grid_y);
+      const dominantClass = dominantMap.get(d.Common_Name) ?? "Other";
+      if (window.onBirdClick) window.onBirdClick(d.Common_Name, dominantClass, pos.x, pos.y);
+    });
 
   noDots
-    .on("mouseenter", (e, d) => { d3.select(e.currentTarget).attr("stroke-opacity", 1); showTip(e, d.Common_Name, true); })
+    .on("mouseenter", (e, d) => { d3.select(e.currentTarget).attr("opacity", 0.6); showTip(e, d.Common_Name, true); })
     .on("mousemove",  moveTip)
-    .on("mouseleave", (e) => { d3.select(e.currentTarget).attr("stroke-opacity", 0.55); hideTip(); });
+    .on("mouseleave", (e) => { d3.select(e.currentTarget).attr("opacity", 1); hideTip(); });
 
   // view toggle state 
   let viewMode = "umap";
 
-  // zoom & pan 
+  // zoom & pan (only in umap view)
   const zoom = d3.zoom()
     .scaleExtent([0.5, 20])
     .on("zoom", ({ transform }) => {
@@ -240,23 +219,13 @@ Promise.all([
       const newX = transform.rescaleX(activeX);
       const newY = transform.rescaleY(activeY);
 
-      // xAxisG.call(d3.axisBottom(newX).ticks(8).tickSize(-H + MARGIN.top + MARGIN.bottom))
-      //   .call(g => g.select(".domain").remove())
-      //   .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
-      //   .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
-
-      // yAxisG.call(d3.axisLeft(newY).ticks(8).tickSize(-W + MARGIN.left + MARGIN.right))
-      //   .call(g => g.select(".domain").remove())
-      //   .call(g => g.selectAll(".tick line").attr("stroke", "#2a2a4a"))
-      //   .call(g => g.selectAll(".tick text").attr("fill", "#777").attr("font-size", "10px"));
-
       knownDots
-        .attr("cx", d => viewMode === "umap" ? newX(+d.x) : newX(+d.grid_x))
-        .attr("cy", d => viewMode === "umap" ? newY(+d.y) : newY(+d.grid_y));
+        .attr("x", d => (viewMode === "umap" ? newX(+d.x) : newX(+d.grid_x)) - DOT_R)
+        .attr("y", d => (viewMode === "umap" ? newY(+d.y) : newY(+d.grid_y)) - DOT_R);
 
       noDots
-        .attr("cx", () => newX(xNoData))
-        .attr("cy", (d, i) => newY(noDataYs[i]));
+        .attr("x", () => newX(xNoData) - DOT_R)
+        .attr("y", (_, i) => newY(noDataYs[i]) - DOT_R);
 
       dotsG.select(".no-data-divider")
         .attr("x1", newX(xDivider))
@@ -277,32 +246,28 @@ Promise.all([
     const newMode = viewMode === "umap" ? "grid" : "umap";
     toggleBtn.textContent = newMode === "umap" ? "Grid View" : "UMAP View";
 
-    // Reset zoom using current mode so dots land at unzoomed positions first
     svg.call(zoom.transform, d3.zoomIdentity);
-
     viewMode = newMode;
+
+    if (viewMode === "grid") {
+      svg.on(".zoom", null);
+    } else {
+      svg.call(zoom);
+    }
     const t = d3.transition().duration(600).ease(d3.easeCubicInOut);
 
     if (viewMode === "grid") {
       knownDots.transition(t)
-        .attr("cx", d => gxScale(+d.grid_x))
-        .attr("cy", d => gyScale(+d.grid_y));
+        .attr("x", d => gxScale(+d.grid_x) - DOT_R)
+        .attr("y", d => gyScale(+d.grid_y) - DOT_R);
       noDots.transition(t).attr("opacity", 0);
       dotsG.select(".no-data-divider").transition(t).attr("opacity", 0);
-      // xLabel.transition(t).attr("opacity", 0);
-      // yLabel.transition(t).attr("opacity", 0);
-      // xAxisG.transition(t).attr("opacity", 0);
-      // yAxisG.transition(t).attr("opacity", 0);
     } else {
       knownDots.transition(t)
-        .attr("cx", d => xScale(+d.x))
-        .attr("cy", d => yScale(+d.y));
+        .attr("x", d => xScale(+d.x) - DOT_R)
+        .attr("y", d => yScale(+d.y) - DOT_R);
       noDots.transition(t).attr("opacity", 1);
       dotsG.select(".no-data-divider").transition(t).attr("opacity", 1);
-      // xLabel.transition(t).attr("opacity", 1);
-      // yLabel.transition(t).attr("opacity", 1);
-      // xAxisG.transition(t).attr("opacity", 1);
-      // yAxisG.transition(t).attr("opacity", 1);
     }
   });
 
@@ -313,12 +278,46 @@ Promise.all([
   const legendEl = document.getElementById("legend");
   legendEl.innerHTML = "<div style='font-size:0.72rem;color:#777;margin-bottom:5px;font-weight:600'>DOMINANT PREY CLASS</div>";
   legendOrder.forEach(cls => {
-    const color = COLOR_MAP[cls];
-    const swatch = cls === "No data"
-      ? `<span class="legend-swatch" style="background:none;border:1.5px solid white;border-radius:50%"></span>`
-      : `<span class="legend-swatch" style="background:${color}"></span>`;
+    const swatch = `<img src="${cls === "No data" ? "dots/nodata.png" : dotImg(cls)}" class="legend-swatch">`;
     legendEl.innerHTML += `<div>${swatch}${cls}</div>`;
   });
+
+  // function for animations.js to place the animations correctly
+  window.getScreenPos = function(gridX, gridY) {
+    const svgX = gxScale(gridX);
+    const svgY = gyScale(gridY);
+    const rect = document.querySelector("#chart").getBoundingClientRect();
+
+    // svg uses xMidYMid meet, so it letterboxes inside the container rect
+    // calculate the actual rendered size and centering offset
+    const containerAspect = rect.width / rect.height;
+    const svgAspect = W / H;
+    let renderW, renderH, offsetX, offsetY;
+    if (containerAspect > svgAspect) {
+      // container wider than svg — pillarbox (empty sides)
+      renderH = rect.height;
+      renderW = renderH * svgAspect;
+      offsetX = (rect.width - renderW) / 2;
+      offsetY = 0;
+    } else {
+      // container taller than svg — letterbox (empty top/bottom)
+      renderW = rect.width;
+      renderH = renderW / svgAspect;
+      offsetX = 0;
+      offsetY = (rect.height - renderH) / 2;
+    }
+
+    return {
+      x: rect.left + offsetX + svgX * (renderW / W),
+      y: rect.top  + offsetY + svgY * (renderH / H),
+    };
+  };
+
+  window.getBirdScreenPos = function(name) {
+    const c = coords.get(name);
+    if (!c || c.grid_x === null) return null;
+    return window.getScreenPos(c.grid_x, c.grid_y);
+  };
 
 }).catch(err => {
   document.body.innerHTML += `<p style="color:#e76f51;margin-top:40px">
