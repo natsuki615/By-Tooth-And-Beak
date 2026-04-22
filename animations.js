@@ -228,44 +228,76 @@ class Insecta {
 
 class Magnoliopsida {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
         this.frame = 0;
         this.duration = 120;
-        this.seeds = Array.from({ length: 25 }, () => ({
-            x: x + random(-20, 20),
-            y: y,
-            vx: random(-0.8, 0.8),
-            vy: random(0.5, 2),
-            size: random(3, 7),
-            angle: random(TWO_PI),
-        }));
+
+        const seedTypes = ["chia", "millet", "pumpkin", "safflower", "sunflower"];
+        this.vids = seedTypes.map(type => {
+            const v = createVideo(`anim/magnoliopsida/${type}/output.webm`);
+            v.hide();
+            v.loop();
+            v.volume(0);
+            v.play();
+            return v;
+        });
+
+        this.seeds = [];
+        let k = random(10, 15);
+        for (let i = 0; i < k; i++) {
+            this.seeds.push({
+                x: x + random(-20, 20),
+                y: y,
+                vx: random(-0.8, 0.8),
+                vy: random(0.5, 2),
+                angle: random(TWO_PI),
+                phase: random(TWO_PI),
+                vid: random(this.vids),
+            });
+        }
     }
 
     update() {
         this.frame++;
         for (const s of this.seeds) {
-            s.x += s.vx + sin(this.frame * 0.05) * 0.3;
+            s.x += s.vx + sin(this.frame * 0.05 + s.phase) * 0.3;
             s.y += s.vy;
-            s.angle += 0.05;
+            s.angle += 0.03;
         }
     }
 
     draw() {
-        const alpha = this.frame < 90 ? 200 : map(this.frame, 90, this.duration, 200, 0);
+        let alpha;
+        if (this.frame < 90) {
+            alpha = 200;
+        } else {
+            alpha = map(this.frame, 90, this.duration, 200, 0);
+        }
+
+        const size = 40;
+        tint(255, alpha);
         for (const s of this.seeds) {
             push();
             translate(s.x, s.y);
             rotate(s.angle);
-            noStroke();
-            fill(42, 157, 143, alpha);
-            ellipse(0, 0, s.size, s.size * 2);
+            image(s.vid, -size/2, -size/2, size, size);
             pop();
+        }
+        noTint();
+    }
+
+    cleanup() {
+        for (const v of this.vids) { 
+            v.stop(); 
+            v.remove(); 
         }
     }
 
-    isDone() { 
-        return this.frame >= this.duration; 
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
     }
 }
 
@@ -445,6 +477,25 @@ class Cephalopoda {
         this.frame = 0;
         this.duration = 100;
         this.inkParticles = [];
+
+        this.vid = createVideo("anim/cephalopoda/output.webm", () => {
+            this.vid.loop();
+            this.vid.volume(0);
+            this.vid.play();
+        });
+        this.vid.hide();
+
+        this.octopus = [];
+        let k = random(3, 5);
+        for (let i = 0; i < k; i++) {
+            this.octopus.push({
+                x: x,
+                y: y,
+                vx: random(-2, 2),
+                vy: random(-3, -1),
+                flipped: random() > 0.5,
+            });
+        }
     }
 
     update() {
@@ -466,33 +517,48 @@ class Cephalopoda {
             p.vx *= 0.95;
             p.vy *= 0.95;
         }
+        for (const b of this.octopus) {
+            b.x += b.vx;
+            b.y += b.vy;
+        }
     }
 
     draw() {
-        const alpha = this.frame < 80 ? 255 : map(this.frame, 80, this.duration, 255, 0);
+        // const alpha = this.frame < 80 ? 255 : map(this.frame, 80, this.duration, 255, 0);
 
-        noFill();
-        stroke(106, 76, 147, alpha);
-        strokeWeight(2);
-        beginShape();
-        for (let i = 0; i <= this.frame * 2; i++) {
-            const angle = i * 0.3;
-            const r = i * 0.4;
-            const px = this.x + cos(angle) * r;
-            const py = this.y + sin(angle) * r * 0.4 + i * 0.3;
-            vertex(px, py);
+        let alpha;
+        if (this.frame < 60) {
+            alpha = 255;
+        } else {
+            alpha = map(this.frame, 60, this.duration, 255, 0);
         }
-        endShape();
 
-        noStroke();
-        fill(106, 76, 147, alpha * 0.5);
-        for (const p of this.inkParticles) {
-            ellipse(p.x, p.y, 6, 6);
+        const size = 60;
+        tint(255, alpha);
+        for (const b of this.octopus) {
+            push();
+            if (b.flipped) {
+                scale(-1, 1);
+                image(this.vid, -(b.x+size/2), b.y-size/2, size, size);
+            } else {
+                image(this.vid, b.x-size/2, b.y-size/2, size, size);
+            }
+            pop();
         }
+        noTint();
     }
 
-    isDone() { 
-        return this.frame >= this.duration; 
+    cleanup() {
+        this.vid.stop();
+        this.vid.remove();
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
     }
 }
 
@@ -503,41 +569,53 @@ class Euchelicerata {
         this.x = x;
         this.y = y;
         this.frame = 0;
-        this.duration = 80;
-        this.spokes = 8;
-        this.spiders = Array.from({ length: this.spokes }, (_, i) => ({
-            angle: (TWO_PI / this.spokes) * i,
-            dist: 0,
-        }));
+        this.duration = 120;
+        // this.spokes = 8;
+        // this.spiders = Array.from({ length: this.spokes }, (_, i) => ({
+        //     angle: (TWO_PI / this.spokes) * i,
+        //     dist: 0,
+        // }));
+
+        // one video element as the shared image source for optimization
+        this.vid = createVideo("anim/euchelicerata/output.webm");
+        this.vid.hide(); // keep it out of the DOM visually
+        this.vid.loop();
+        this.vid.volume(0);
+        this.vid.play();
     }
 
     update() {
         this.frame++;
-        for (const s of this.spiders) {
-            s.dist = min(s.dist + 2, 50);
-        }
+        // for (const s of this.spiders) {
+        //     s.dist = min(s.dist + 2, 50);
+        // }
     }
 
     draw() {
-        const alpha = this.frame < 60 ? 200 : map(this.frame, 60, this.duration, 200, 0);
-        stroke(168, 218, 220, alpha);
-        strokeWeight(1);
-        for (const s of this.spiders) {
-            const ex = this.x + cos(s.angle) * s.dist;
-            const ey = this.y + sin(s.angle) * s.dist;
-            line(this.x, this.y, ex, ey);
-            noStroke();
-            fill(168, 218, 220, alpha);
-            ellipse(ex, ey, 5, 5);
-            stroke(168, 218, 220, alpha);
+        let alpha;
+        if (this.frame < 60) {
+            alpha = 255;
+        } else {
+            alpha = map(this.frame, 60, this.duration, 255, 0);
         }
-        noFill();
-        const ringR = this.frame * 0.8;
-        if (ringR < 50) ellipse(this.x, this.y, ringR * 2, ringR * 2);
+
+        const size = 360;
+        tint(255, alpha);
+        image(this.vid, this.x - size / 2, this.y - size / 2, size, size);
+        noTint();
     }
 
-    isDone() { 
-        return this.frame >= this.duration; 
+    cleanup() {
+        this.vid.stop();
+        this.vid.remove();
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
     }
 }
 
@@ -629,7 +707,15 @@ class Pinopsida {
             r: random(5, 15),
             vy: random(0.5, 2),
             spin: random(-0.05, 0.05),
-            len: random(8, 16),
+            len: random(16, 32),
+        }));
+        this.pineImg = loadImage("anim/pinopsida/pine.png");
+        this.cones = Array.from({ length: 5 }, () => ({
+            angle: random(TWO_PI),
+            r: random(5, 15),
+            vy: random(0.5, 1.5),
+            spin: random(-0.03, 0.03),
+            rot: random(TWO_PI),
         }));
     }
 
@@ -638,6 +724,11 @@ class Pinopsida {
         for (const n of this.needles) {
             n.angle += n.spin;
             n.r += 0.5;
+        }
+        for (const c of this.cones) {
+            c.angle += c.spin;
+            c.r += 0.5;
+            c.rot += 0.02;
         }
     }
 
@@ -652,6 +743,18 @@ class Pinopsida {
             const ey = ny + sin(n.angle + HALF_PI) * n.len;
             line(nx, ny, ex, ey);
         }
+        const coneSize = 60;
+        tint(255, alpha);
+        for (const c of this.cones) {
+            const cx = this.x + cos(c.angle) * c.r;
+            const cy = this.y + sin(c.angle) * c.r + c.vy * this.frame;
+            push();
+            translate(cx, cy);
+            rotate(c.rot);
+            image(this.pineImg, -coneSize / 2, -coneSize / 2, coneSize, coneSize);
+            pop();
+        }
+        noTint();
     }
 
     isDone() { return this.frame >= this.duration; }
