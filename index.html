@@ -2,30 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Bird Diet Space — UMAP</title>
+  <title>By Tooth And Beak</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 </head>
 <body>
 
-<h1>By Tooth And Beak: Bird Diet Space</h1>
-<p id="subtitle">Colored by dominant prey class &bull; scroll to zoom &bull; drag to pan &bull; hover for details</p>
+<header>
+  <div id="title-block">
+    <h1>By Tooth And Beak</h1>
+    <p id="subtitle">Bird diet space &bull; hover to explore &bull; click to animate</p>
+  </div>
+  <div id="controls"></div>
+</header>
 
 <div id="chart-wrap">
   <svg id="chart"></svg>
   <div id="legend"></div>
 </div>
 
-<p id="instructions">
-  Run with: <code style="color:#888">python3 -m http.server 8000</code> then open
-  <code style="color:#888">http://localhost:8000</code>
-</p>
-
 <div id="tooltip"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
 <script src="animations.js"></script>
-
 <script src="chart.js"></script>
 </body>
 </html>

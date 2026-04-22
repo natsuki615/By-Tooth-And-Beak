@@ -60,11 +60,12 @@ Promise.all([
     cluster: d.cluster === "" ? null : +d.cluster,
   }]));
 
-  // parse diet & compute dominant prey class 
+  // parse diet
   const preyClasses = dietRaw.columns.filter(c => c !== "Common_Name");
   const dominantMap = new Map();
   const topPreyMap  = new Map(); // top 5 prey fractions per species
 
+  // get dominant prey class 
   dietRaw.forEach(row => {
     const sp = row.Common_Name;
     let maxFrac = -1;
@@ -72,7 +73,10 @@ Promise.all([
     const fracs = [];
     preyClasses.forEach(cls => {
       const v = +row[cls];
-      if (v > maxFrac) { maxFrac = v; maxCls = cls; }
+      if (v > maxFrac) { 
+        maxFrac = v; 
+        maxCls = cls; 
+      }
       if (v > 0.01) fracs.push({ cls, v });
     });
     fracs.sort((a, b) => b.v - a.v);
@@ -89,7 +93,7 @@ Promise.all([
       dominantMap.set(sp, "Other");
   });
 
-  // scales 
+  // umap scales 
   const known = coordsRaw.filter(d => d.x !== "");
   const xExt = d3.extent(known, d => +d.x);
   const yExt = d3.extent(known, d => +d.y);
@@ -103,6 +107,7 @@ Promise.all([
     .domain([yExt[0] - padding, yExt[1] + padding])
     .range([H - MARGIN.bottom, MARGIN.top]);
 
+  // grid scales 
   const gxExt = d3.extent(known, d => +d.grid_x);
   const gyExt = d3.extent(known, d => +d.grid_y);
   const gxScale = d3.scaleLinear()
@@ -125,14 +130,14 @@ Promise.all([
     .attr("stroke", "rgba(255,255,255,0.12)")
     .attr("stroke-dasharray", "4 4").attr("stroke-width", 1);
 
-  // dots - known diet species
+  // dots - known diet species (default: grid view)
   const knownDots = dotsG.selectAll("image.dot.known")
     .data(known)
     .join("image")
       .attr("class", "dot known")
       .attr("href", d => dotImg(dominantMap.get(d.Common_Name)))
-      .attr("x", d => xScale(+d.x) - DOT_R)
-      .attr("y", d => yScale(+d.y) - DOT_R)
+      .attr("x", d => gxScale(+d.grid_x) - DOT_R)
+      .attr("y", d => gyScale(+d.grid_y) - DOT_R)
       .attr("width",  DOT_R * 2)
       .attr("height", DOT_R * 2);
 
@@ -150,7 +155,8 @@ Promise.all([
       .attr("x", () => xScale(xNoData) - DOT_R)
       .attr("y", (_, i) => yScale(noDataYs[i]) - DOT_R)
       .attr("width",  DOT_R * 2)
-      .attr("height", DOT_R * 2);
+      .attr("height", DOT_R * 2)
+      .attr("opacity", 0); // hidden by default in grid view
 
   // tooltip 
   function showTip(event, sp, isNoData) {
@@ -207,8 +213,8 @@ Promise.all([
     .on("mousemove",  moveTip)
     .on("mouseleave", (e) => { d3.select(e.currentTarget).attr("opacity", 1); hideTip(); });
 
-  // view toggle state 
-  let viewMode = "umap";
+  // view toggle state — default grid
+  let viewMode = "grid";
 
   // zoom & pan (only in umap view)
   const zoom = d3.zoom()
@@ -234,17 +240,18 @@ Promise.all([
         .attr("y2", newY(yExt[0] - padding));
     });
 
-  svg.call(zoom);
+  // start in grid mode — zoom disabled
+  dotsG.select(".no-data-divider").attr("opacity", 0);
 
   // toggle between umap and grid view
   const toggleBtn = document.createElement("button");
   toggleBtn.id = "view-toggle";
-  toggleBtn.textContent = "Grid View";
-  document.getElementById("chart-wrap").appendChild(toggleBtn);
+  toggleBtn.textContent = "UMAP View";
+  document.getElementById("controls").appendChild(toggleBtn);
 
   toggleBtn.addEventListener("click", () => {
     const newMode = viewMode === "umap" ? "grid" : "umap";
-    toggleBtn.textContent = newMode === "umap" ? "Grid View" : "UMAP View";
+    toggleBtn.textContent = newMode === "umap" ? "UMAP View" : "Grid View";
 
     svg.call(zoom.transform, d3.zoomIdentity);
     viewMode = newMode;

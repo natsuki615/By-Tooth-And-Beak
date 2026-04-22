@@ -14,22 +14,23 @@ function setup() {
     canvas.style("z-index", "5");
 
     window.onBirdClick = function(name, dominantClass, x, y) {
+        if (currentAnim && currentAnim.cleanup) currentAnim.cleanup();
         if (predator_prey_links[name]) {
             currentAnim = new Predator(name, x, y, predator_prey_links[name]);
         } else {
             switch (dominantClass) {
-                case "Mammalia":      currentAnim = new Mammalia(x, y); break;
-                case "Insecta":       currentAnim = new Insecta(x, y); break;
-                case "Teleostei":     currentAnim = new Teleostei(x, y); break;
+                case "Mammalia": currentAnim = new Mammalia(x, y); break;
+                case "Insecta": currentAnim = new Insecta(x, y); break;
+                case "Teleostei": currentAnim = new Teleostei(x, y); break;
                 case "Magnoliopsida": currentAnim = new Magnoliopsida(x, y); break;
-                case "Malacostraca":  currentAnim = new Malacostraca(x, y); break;
-                case "Cephalopoda":   currentAnim = new Cephalopoda(x, y); break;
+                case "Malacostraca": currentAnim = new Malacostraca(x, y); break;
+                case "Cephalopoda": currentAnim = new Cephalopoda(x, y); break;
                 case "Euchelicerata": currentAnim = new Euchelicerata(x, y); break;
-                case "Gastropoda":    currentAnim = new Gastropoda(x, y); break;
-                case "Bivalvia":      currentAnim = new Bivalvia(x, y); break;
-                case "Pinopsida":     currentAnim = new Pinopsida(x, y); break;
-                case "Aves":          currentAnim = new Aves(x, y); break;
-                default:              currentAnim = new Other(x, y); break;
+                case "Gastropoda": currentAnim = new Gastropoda(x, y); break;
+                case "Bivalvia": currentAnim = new Bivalvia(x, y); break;
+                case "Pinopsida": currentAnim = new Pinopsida(x, y); break;
+                case "Aves": currentAnim = new Aves(x, y); break;
+                default: currentAnim = new Other(x, y); break;
             }
         }
     };
@@ -47,8 +48,8 @@ function draw() {
 // requires window.getBirdScreenPos(name) to be defined in chart.js
 class Predator {
     static TRAVEL = 55; // frames for dart to reach target
-    static HOLD   = 90; // frames arrow + label stay at full opacity
-    static FADE   = 40; // frames to fade out
+    static HOLD = 90; // frames arrow + label stay at full opacity
+    static FADE = 40; // frames to fade out
 
     constructor(_name, x, y, preyNames) {
         this.x = x;
@@ -139,42 +140,88 @@ class Predator {
     isDone() { return this.frame >= this.duration; }
 }
 
-// insecta - rapid darting dots flitting around the origin like catching flying insects
+// insecta - one video decoded once, drawn at each bug position on the p5 canvas
 class Insecta {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
         this.frame = 0;
-        this.duration = 80;
-        this.bugs = Array.from({ length: 10 }, () => ({
-            x: x, y: y,
-            vx: random(-4, 4),
-            vy: random(-4, 4),
-        }));
+        this.duration = 160;
+
+        // one video element as the shared image source for optimization
+        this.vid = createVideo("anim/insecta/bee.webm");
+        this.vid.hide(); // keep it out of the DOM visually
+        this.vid.loop();
+        this.vid.volume(0);
+        this.vid.play();
+
+        // bugs are just pos + vel, no separate video elements
+        this.bugs = [];
+        let k = random(6, 10);
+        for (let i = 0; i < k; i++) {
+            this.bugs.push({
+                x: x,
+                y: y,
+                vx: random(-3, 3),
+                vy: random(-3, 3),
+                flipped: random() > 0.5,
+            });
+        }
     }
 
     update() {
         this.frame++;
+        const maxSpeed = 3;
         for (const b of this.bugs) {
-            if (this.frame % 8 === 0) {
-                b.vx = random(-4, 4);
-                b.vy = random(-4, 4);
+            // nudge velocity by a small random amount each frame to prevent jitteriness 
+            b.vx += random(-0.6, 0.6);
+            b.vy += random(-0.6, 0.6);
+
+            // clamp speed so bugs don't accelerate forever
+            const speed = sqrt(b.vx * b.vx + b.vy * b.vy);
+            if (speed > maxSpeed) {
+                b.vx = (b.vx / speed) * maxSpeed;
+                b.vy = (b.vy / speed) * maxSpeed;
             }
+
             b.x += b.vx;
             b.y += b.vy;
         }
     }
 
     draw() {
-        const alpha = this.frame < 60 ? 255 : map(this.frame, 60, this.duration, 255, 0);
-        noStroke();
-        fill(244, 162, 97, alpha);
-        for (const b of this.bugs) {
-            ellipse(b.x, b.y, 5, 5);
+        let alpha;
+        if (this.frame < 60) {
+            alpha = 255;
+        } else {
+            alpha = map(this.frame, 60, this.duration, 255, 0);
         }
+
+        const size = 60;
+        tint(255, alpha);
+        for (const b of this.bugs) {
+            push();
+            if (b.flipped) {
+                scale(-1, 1);
+                image(this.vid, -(b.x+size/2), b.y-size/2, size, size);
+            } else {
+                image(this.vid, b.x-size/2, b.y-size/2, size, size);
+            }
+            pop();
+        }
+        noTint();
     }
 
-    isDone() { return this.frame >= this.duration; }
+    cleanup() {
+        this.vid.stop();
+        this.vid.remove();
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
+    }
 }
 
 // magnoliopsida: seeds and petals drifting downward from origin
@@ -217,7 +264,9 @@ class Magnoliopsida {
         }
     }
 
-    isDone() { return this.frame >= this.duration; }
+    isDone() { 
+        return this.frame >= this.duration; 
+    }
 }
 
 // teleostei - bird dives downward then ripple rings spread at "water surface"
@@ -266,7 +315,9 @@ class Teleostei {
         }
     }
 
-    isDone() { return this.frame >= this.duration; }
+    isDone() { 
+        return this.frame >= this.duration; 
+    }
 }
 
 // mammalia: swooping arc — dives down and snaps back up like a raptor strike.
@@ -307,7 +358,9 @@ class Mammalia {
         }
     }
 
-    isDone() { return this.frame >= this.duration; }
+    isDone() { 
+        return this.frame >= this.duration; 
+    }
 }
 
 // malacostraca - sideways probing dots spreading horizontally like shorebird feeding
@@ -343,7 +396,9 @@ class Malacostraca {
         }
     }
 
-    isDone() { return this.frame >= this.duration; }
+    isDone() { 
+        return this.frame >= this.duration; 
+    }
 }
 
 // cephalopoda - piral dive downward with an ink-cloud burst
@@ -401,7 +456,9 @@ class Cephalopoda {
         }
     }
 
-    isDone() { return this.frame >= this.duration; }
+    isDone() { 
+        return this.frame >= this.duration; 
+    }
 }
 
 // euchelicerata - spider-web lines radiating outward with dots crawling along them
@@ -444,7 +501,9 @@ class Euchelicerata {
         if (ringR < 50) ellipse(this.x, this.y, ringR * 2, ringR * 2);
     }
 
-    isDone() { return this.frame >= this.duration; }
+    isDone() { 
+        return this.frame >= this.duration; 
+    }
 }
 
 // gastropoda - slow expanding ripple rings 
@@ -454,29 +513,45 @@ class Gastropoda {
         this.y = y;
         this.frame = 0;
         this.duration = 100;
-        this.rings = [{ r: 0, born: 0 }, { r: 0, born: 20 }, { r: 0, born: 40 }];
+
+        // one video element as the shared image source for optimization
+        this.vid = createVideo("anim/gastropoda/output.webm");
+        this.vid.hide(); // keep it out of the DOM visually
+        this.vid.loop();
+        this.vid.volume(0);
+        this.vid.play();
     }
 
     update() {
         this.frame++;
-        for (const ring of this.rings) {
-            if (this.frame >= ring.born) ring.r += 1.2;
-        }
     }
 
     draw() {
-        const alpha = this.frame < 80 ? 180 : map(this.frame, 80, this.duration, 180, 0);
-        noFill();
-        for (const ring of this.rings) {
-            if (this.frame < ring.born) continue;
-            const a = map(ring.r, 0, 80, alpha, 0);
-            stroke(201, 173, 167, max(a, 0));
-            strokeWeight(1.5);
-            ellipse(this.x, this.y, ring.r * 2, ring.r * 2);
+        let alpha;
+        if (this.frame < 60) {
+            alpha = 255;
+        } else {
+            alpha = map(this.frame, 60, this.duration, 255, 0);
         }
+
+        const size = 80;
+        tint(255, alpha);
+        image(this.vid, this.x - size / 2, this.y - size / 2, size, size);
+        noTint();
     }
 
-    isDone() { return this.frame >= this.duration; }
+    cleanup() {
+        this.vid.stop();
+        this.vid.remove();
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
+    }
 }
 
 // bivalvia - two arcs pulsing open and closed (shells)
