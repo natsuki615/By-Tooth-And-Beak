@@ -277,46 +277,81 @@ class Teleostei {
         this.y = y;
         this.frame = 0;
         this.duration = 90;
-        this.splashY = y + 80;
-        this.rings = [];
+        // this.splashY = y + 80;
+        // this.rings = [];
+
+        // // one video element as the shared image source for optimization
+        this.vid = createVideo("anim/gastropoda/output.webm");
+        this.vid.hide(); // keep it out of the DOM visually
+        this.vid.loop();
+        this.vid.volume(0);
+        this.vid.play();
     }
+
+    // update() {
+    //     this.frame++;
+    //     if (this.frame === 30) {
+    //         for (let i = 0; i < 3; i++) {
+    //             this.rings.push({ r: 5, delay: i * 8 });
+    //         }
+    //     }
+    //     for (const ring of this.rings) {
+    //         ring.r += 3;
+    //     }
+        
+    // }
+
+    // draw() {
+    //     const alpha = this.frame < 70 ? 255 : map(this.frame, 70, this.duration, 255, 0);
+    //     const t = min(this.frame / 30, 1);
+    //     const birdY = lerp(this.y, this.splashY, t);
+
+    //     push();
+    //     translate(this.x, birdY);
+    //     rotate(HALF_PI);
+    //     fill(69, 123, 157, alpha);
+    //     noStroke();
+    //     triangle(0, -6, -4, 5, 4, 5);
+    //     pop();
+
+    //     noFill();
+    //     for (const ring of this.rings) {
+    //         const ringAlpha = map(ring.r, 5, 120, alpha, 0);
+    //         stroke(69, 123, 157, max(ringAlpha, 0));
+    //         strokeWeight(1.5);
+    //         ellipse(this.x, this.splashY, ring.r * 2, ring.r * 0.6);
+    //     }
+    // }
 
     update() {
         this.frame++;
-        if (this.frame === 30) {
-            for (let i = 0; i < 3; i++) {
-                this.rings.push({ r: 5, delay: i * 8 });
-            }
-        }
-        for (const ring of this.rings) {
-            ring.r += 3;
-        }
     }
 
     draw() {
-        const alpha = this.frame < 70 ? 255 : map(this.frame, 70, this.duration, 255, 0);
-        const t = min(this.frame / 30, 1);
-        const birdY = lerp(this.y, this.splashY, t);
-
-        push();
-        translate(this.x, birdY);
-        rotate(HALF_PI);
-        fill(69, 123, 157, alpha);
-        noStroke();
-        triangle(0, -6, -4, 5, 4, 5);
-        pop();
-
-        noFill();
-        for (const ring of this.rings) {
-            const ringAlpha = map(ring.r, 5, 120, alpha, 0);
-            stroke(69, 123, 157, max(ringAlpha, 0));
-            strokeWeight(1.5);
-            ellipse(this.x, this.splashY, ring.r * 2, ring.r * 0.6);
+        let alpha;
+        if (this.frame < 60) {
+            alpha = 255;
+        } else {
+            alpha = map(this.frame, 60, this.duration, 255, 0);
         }
+
+        const size = 240;
+        tint(255, alpha);
+        image(this.vid, this.x - size / 2, this.y - size / 2, size, size);
+        noTint();
     }
 
-    isDone() { 
-        return this.frame >= this.duration; 
+    cleanup() {
+        this.vid.stop();
+        this.vid.remove();
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
     }
 }
 

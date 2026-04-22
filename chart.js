@@ -175,9 +175,9 @@ Promise.all([
       (topPreyMap.get(sp) || []).forEach(({ cls, v }) => {
         html += `<div class="prey-row"><span>${cls}</span><span>${(v * 100).toFixed(1)}%</span></div>`;
       });
-      if (c && c.cluster !== null) {
-        html += `<span class="cluster-tag">cluster ${c.cluster}</span>`;
-      }
+      // if (c && c.cluster !== null) {
+      //   html += `<span class="cluster-tag">cluster ${c.cluster}</span>`;
+      // }
     }
 
     tooltip.innerHTML = html;
@@ -193,7 +193,9 @@ Promise.all([
     tooltip.style.top  = (y + th > window.innerHeight ? y - th : y) + "px";
   }
 
-  function hideTip() { tooltip.classList.remove("visible"); }
+  function hideTip() { 
+    tooltip.classList.remove("visible"); 
+  }
 
   knownDots
     .on("mouseenter", (e, d) => { 

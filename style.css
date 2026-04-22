@@ -3,7 +3,8 @@
 body {
   background: #1a1a2e;
   color: #ddd;
-  font-family: "Inter", system-ui, sans-serif;
+  /* font-family: "Inter", system-ui, sans-serif; */
+  font-family: "Indie Flower", cursive;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -28,14 +29,14 @@ header {
 
 h1 {
   font-family: "Caveat Brush", cursive;
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: 400;
   color: #eee;
   white-space: nowrap;
 }
 
 #subtitle {
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   color: #555;
 }
 
@@ -46,7 +47,9 @@ h1 {
 }
 
 #chart-wrap {
-  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
   width: 100%;
   flex: 1;
   min-height: 0;
@@ -54,7 +57,8 @@ h1 {
 
 svg {
   display: block;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   background: #1a1a2e;
   border: 1px solid #2a2a4a;
@@ -64,7 +68,6 @@ svg {
 /* dots */
 circle.dot, image.dot { cursor: crosshair; }
 
-/* tooltip */
 #tooltip {
   position: fixed;
   pointer-events: none;
@@ -79,11 +82,34 @@ circle.dot, image.dot { cursor: crosshair; }
   transition: opacity 0.1s;
   z-index: 10;
 }
-#tooltip.visible { opacity: 1; }
-#tooltip .sp-name { font-weight: 600; font-size: 0.85rem; color: #fff; margin-bottom: 4px; }
-#tooltip .prey-row { display: flex; justify-content: space-between; gap: 12px; }
-#tooltip .prey-row span:last-child { color: #aaa; }
-#tooltip .divider { border: none; border-top: 1px solid #333; margin: 5px 0; }
+
+#tooltip.visible { 
+  opacity: 1; 
+}
+
+#tooltip .sp-name { 
+  font-weight: 600; 
+  font-size: 1rem; 
+  color: #fff; 
+  margin-bottom: 4px; 
+}
+
+#tooltip .prey-row { 
+  display: flex; 
+  justify-content: space-between; 
+  gap: 12px; 
+}
+
+#tooltip .prey-row span:last-child { 
+  color: #aaa; 
+}
+
+#tooltip .divider { 
+  border: none; 
+  border-top: 1px solid #333; 
+  margin: 5px 0; 
+}
+
 .tip-bird {
   display: block;
   width: 100%;
@@ -91,6 +117,7 @@ circle.dot, image.dot { cursor: crosshair; }
   object-fit: contain;
   margin-bottom: 6px;
 }
+
 #tooltip .cluster-tag {
   display: inline-block;
   margin-top: 5px;
@@ -101,18 +128,15 @@ circle.dot, image.dot { cursor: crosshair; }
   color: #aaa;
 }
 
-/* legend */
 #legend {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  background: rgba(26,26,46,0.88);
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 10px 14px;
-  font-size: 0.76rem;
+  flex-shrink: 0;
+  width: 160px;
+  background: #1a1a2e;
+  border-right: 1px solid #2a2a4a;
+  padding: 14px 16px;
+  font-size: 0.9rem;
   line-height: 1.9;
-  pointer-events: none;
+  overflow-y: auto;
 }
 .legend-swatch {
   display: inline-block;
