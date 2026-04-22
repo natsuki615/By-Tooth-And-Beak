@@ -534,7 +534,7 @@ class Gastropoda {
             alpha = map(this.frame, 60, this.duration, 255, 0);
         }
 
-        const size = 80;
+        const size = 240;
         tint(255, alpha);
         image(this.vid, this.x - size / 2, this.y - size / 2, size, size);
         noTint();
