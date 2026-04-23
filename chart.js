@@ -249,7 +249,7 @@ Promise.all([
   const toggleBtn = document.createElement("button");
   toggleBtn.id = "view-toggle";
   toggleBtn.textContent = "UMAP View";
-  document.getElementById("controls").appendChild(toggleBtn);
+  document.getElementById("bottom-controls").appendChild(toggleBtn);
 
   toggleBtn.addEventListener("click", () => {
     const newMode = viewMode === "umap" ? "grid" : "umap";
