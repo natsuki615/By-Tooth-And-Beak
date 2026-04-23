@@ -14,12 +14,18 @@ const COLOR_MAP = {
   "No data": "none",
 };
 
-const W = 1000, H = 720;
-const MARGIN = { top: 30, right: 120, bottom: 50, left: 55 };
+const W = 1000, H = 750;
+const MARGIN = { 
+  top: 15, 
+  right: 120, 
+  bottom: 15, 
+  left: 55 
+};
 const IMG_SIZE = 10; // half-width/height of bird image in svg units
-const DOT_R = 5; // half-size of dot image (matches old circle radius)
+const DOT_R = 6; 
 
 function safeName(name) {
+  // "Anna's/Steller's Jay" -> "Annas_Stellers_Jay"
   return name.replace(/ /g, "_").replace(/'/g, "").replace(/\//g, "_");
 }
 
@@ -39,8 +45,9 @@ svg.append("defs")
   .append("clipPath")
     .attr("id", "plot-clip")
   .append("rect")
-    .attr("x", MARGIN.left).attr("y", MARGIN.top)
-    .attr("width", W - MARGIN.left - MARGIN.right)
+    .attr("x", MARGIN.left)
+    .attr("y", MARGIN.top)
+    .attr("width", W - 2 * MARGIN.left)
     .attr("height", H - MARGIN.top - MARGIN.bottom);
 
 const dotsG = plotG.append("g").attr("clip-path", "url(#plot-clip)");
@@ -97,7 +104,7 @@ Promise.all([
   const known = coordsRaw.filter(d => d.x !== "");
   const xExt = d3.extent(known, d => +d.x);
   const yExt = d3.extent(known, d => +d.y);
-  const padding = 0.5;
+  const padding = 0.3; // edge padding for grid
 
   const xScale = d3.scaleLinear()
     .domain([xExt[0] - padding, xExt[1] + padding]) // room for no-data strip
@@ -117,18 +124,14 @@ Promise.all([
     .domain([gyExt[0] - padding, gyExt[1] + padding])
     .range([H - MARGIN.bottom, MARGIN.top]);
 
-  // no-data divider line 
   const noDataSpecies = coordsRaw.filter(d => d.x === "");
-  const xDivider = xExt[1] + 1.3;
 
-  dotsG.append("line")
-    .attr("class", "no-data-divider")
-    .attr("x1", xScale(xDivider))
-    .attr("x2", xScale(xDivider))
-    .attr("y1", yScale(yExt[1] + padding))
-    .attr("y2", yScale(yExt[0] - padding))
-    .attr("stroke", "rgba(255,255,255,0.12)")
-    .attr("stroke-dasharray", "4 4").attr("stroke-width", 1);
+  // assign no-data species grid positions continuing after the last known column
+  const numRows = gyExt[1] - gyExt[0] + 1;
+  const noDataGridPos = noDataSpecies.map((_, i) => ({
+    gx: gxExt[1] + 1 + Math.floor(i / numRows),
+    gy: gyExt[0] + (i % numRows),
+  }));
 
   // dots - known diet species (default: grid view)
   const knownDots = dotsG.selectAll("image.dot.known")
@@ -141,22 +144,16 @@ Promise.all([
       .attr("width",  DOT_R * 2)
       .attr("height", DOT_R * 2);
 
-  // dots - no data species
-  const noDataYs = d3.range(noDataSpecies.length).map(i =>
-    yExt[0] + (yExt[1] - yExt[0]) * i / Math.max(noDataSpecies.length - 1, 1)
-  );
-  const xNoData = xExt[1] + 2.5;
-
   const noDots = dotsG.selectAll("image.dot.nodata")
     .data(noDataSpecies)
     .join("image")
       .attr("class", "dot nodata")
       .attr("href", "dots/nodata.png")
-      .attr("x", () => xScale(xNoData) - DOT_R)
-      .attr("y", (_, i) => yScale(noDataYs[i]) - DOT_R)
+      .attr("x", (_, i) => gxScale(noDataGridPos[i].gx) - DOT_R)
+      .attr("y", (_, i) => gyScale(noDataGridPos[i].gy) - DOT_R)
       .attr("width",  DOT_R * 2)
       .attr("height", DOT_R * 2)
-      .attr("opacity", 0); // hidden by default in grid view
+      .attr("opacity", 1);
 
   // tooltip 
   function showTip(event, sp, isNoData) {
@@ -231,19 +228,9 @@ Promise.all([
         .attr("x", d => (viewMode === "umap" ? newX(+d.x) : newX(+d.grid_x)) - DOT_R)
         .attr("y", d => (viewMode === "umap" ? newY(+d.y) : newY(+d.grid_y)) - DOT_R);
 
-      noDots
-        .attr("x", () => newX(xNoData) - DOT_R)
-        .attr("y", (_, i) => newY(noDataYs[i]) - DOT_R);
-
-      dotsG.select(".no-data-divider")
-        .attr("x1", newX(xDivider))
-        .attr("x2", newX(xDivider))
-        .attr("y1", newY(yExt[1] + padding))
-        .attr("y2", newY(yExt[0] - padding));
     });
 
   // start in grid mode — zoom disabled
-  dotsG.select(".no-data-divider").attr("opacity", 0);
 
   // toggle between umap and grid view
   const toggleBtn = document.createElement("button");
@@ -269,14 +256,15 @@ Promise.all([
       knownDots.transition(t)
         .attr("x", d => gxScale(+d.grid_x) - DOT_R)
         .attr("y", d => gyScale(+d.grid_y) - DOT_R);
-      noDots.transition(t).attr("opacity", 0);
-      dotsG.select(".no-data-divider").transition(t).attr("opacity", 0);
+      noDots.transition(t)
+        .attr("x", (_, i) => gxScale(noDataGridPos[i].gx) - DOT_R)
+        .attr("y", (_, i) => gyScale(noDataGridPos[i].gy) - DOT_R)
+        .attr("opacity", 1);
     } else {
       knownDots.transition(t)
         .attr("x", d => xScale(+d.x) - DOT_R)
         .attr("y", d => yScale(+d.y) - DOT_R);
-      noDots.transition(t).attr("opacity", 1);
-      dotsG.select(".no-data-divider").transition(t).attr("opacity", 1);
+      noDots.transition(t).attr("opacity", 0);
     }
   });
 
