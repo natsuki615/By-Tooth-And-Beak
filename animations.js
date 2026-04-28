@@ -73,7 +73,6 @@ class Predator {
             .filter(d => d !== null);
     }
 
-    // easeOutQuart: fast launch, decelerates into target
     easeOut(t) {
         return 1 - pow(1 - t, 4);
     }
@@ -225,7 +224,6 @@ class Insecta {
 }
 
 // magnoliopsida: seeds and petals drifting downward from origin
-
 class Magnoliopsida {
     constructor(x, y) {
         this.frame = 0;
@@ -301,16 +299,13 @@ class Magnoliopsida {
     }
 }
 
-// teleostei - bird dives downward then ripple rings spread at "water surface"
-
+// teleostei - ripple
 class Teleostei {
     constructor(x, y) {
         this.x = x;
         this.y = y;
         this.frame = 0;
         this.duration = 90;
-        // this.splashY = y + 80;
-        // this.rings = [];
 
         // // one video element as the shared image source for optimization
         this.vid = createVideo("anim/gastropoda/output.webm");
@@ -319,41 +314,6 @@ class Teleostei {
         this.vid.volume(0);
         this.vid.play();
     }
-
-    // update() {
-    //     this.frame++;
-    //     if (this.frame === 30) {
-    //         for (let i = 0; i < 3; i++) {
-    //             this.rings.push({ r: 5, delay: i * 8 });
-    //         }
-    //     }
-    //     for (const ring of this.rings) {
-    //         ring.r += 3;
-    //     }
-        
-    // }
-
-    // draw() {
-    //     const alpha = this.frame < 70 ? 255 : map(this.frame, 70, this.duration, 255, 0);
-    //     const t = min(this.frame / 30, 1);
-    //     const birdY = lerp(this.y, this.splashY, t);
-
-    //     push();
-    //     translate(this.x, birdY);
-    //     rotate(HALF_PI);
-    //     fill(69, 123, 157, alpha);
-    //     noStroke();
-    //     triangle(0, -6, -4, 5, 4, 5);
-    //     pop();
-
-    //     noFill();
-    //     for (const ring of this.rings) {
-    //         const ringAlpha = map(ring.r, 5, 120, alpha, 0);
-    //         stroke(69, 123, 157, max(ringAlpha, 0));
-    //         strokeWeight(1.5);
-    //         ellipse(this.x, this.splashY, ring.r * 2, ring.r * 0.6);
-    //     }
-    // }
 
     update() {
         this.frame++;
@@ -388,7 +348,6 @@ class Teleostei {
 }
 
 // mammalia: swooping arc — dives down and snaps back up like a raptor strike.
-
 class Mammalia {
     constructor(x, y) {
         this.x = x;
@@ -431,7 +390,6 @@ class Mammalia {
 }
 
 // malacostraca - sideways probing dots spreading horizontally like shorebird feeding
-
 class Malacostraca {
     constructor(x, y) {
         this.x = x;
@@ -469,7 +427,6 @@ class Malacostraca {
 }
 
 // cephalopoda - piral dive downward with an ink-cloud burst
-
 class Cephalopoda {
     constructor(x, y) {
         this.x = x;
@@ -524,8 +481,6 @@ class Cephalopoda {
     }
 
     draw() {
-        // const alpha = this.frame < 80 ? 255 : map(this.frame, 80, this.duration, 255, 0);
-
         let alpha;
         if (this.frame < 60) {
             alpha = 255;
@@ -563,18 +518,12 @@ class Cephalopoda {
 }
 
 // euchelicerata - spider-web lines radiating outward with dots crawling along them
-
 class Euchelicerata {
     constructor(x, y) {
         this.x = x;
         this.y = y;
         this.frame = 0;
         this.duration = 120;
-        // this.spokes = 8;
-        // this.spiders = Array.from({ length: this.spokes }, (_, i) => ({
-        //     angle: (TWO_PI / this.spokes) * i,
-        //     dist: 0,
-        // }));
 
         // one video element as the shared image source for optimization
         this.vid = createVideo("anim/euchelicerata/output.webm");
@@ -586,9 +535,6 @@ class Euchelicerata {
 
     update() {
         this.frame++;
-        // for (const s of this.spiders) {
-        //     s.dist = min(s.dist + 2, 50);
-        // }
     }
 
     draw() {
@@ -676,7 +622,9 @@ class Bivalvia {
         this.duration = 80;
     }
 
-    update() { this.frame++; }
+    update() { 
+        this.frame++; 
+    }
 
     draw() {
         const alpha = this.frame < 60 ? 255 : map(this.frame, 60, this.duration, 255, 0);
@@ -695,7 +643,6 @@ class Bivalvia {
 }
 
 // pinopsida - needle-like seeds spiraling outward and falling
-
 class Pinopsida {
     constructor(x, y) {
         this.x = x;
@@ -760,38 +707,80 @@ class Pinopsida {
     isDone() { return this.frame >= this.duration; }
 }
 
-// ─── Aves ─────────────────────────────────────────────────────────────────────
-// Wing arcs flaring out like a bird spreading its wings.
-
+// bird flock 
 class Aves {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
         this.frame = 0;
-        this.duration = 80;
+        this.duration = 200;
+
+        this.vid = createVideo("anim/aves/output.webm");
+        this.vid.hide();
+        this.vid.loop();
+        this.vid.volume(0);
+        this.vid.play();
+
+        // flock flies in a consistent horizontal direction
+        const dir = random() > 0.5 ? 1 : -1;
+        this.birds = [];
+        let k = floor(random(4, 8));
+        for (let i = 0; i < k; i++) {
+            this.birds.push({
+                x: x + random(-50, 50),
+                y: y + random(-40, 40),
+                vx: dir * random(1.8, 3.2),
+                vy: random(-0.4, 0.4),
+                phase: random(TWO_PI),
+                flipped: dir < 0,
+                size: random(80, 140),
+            });
+        }
     }
 
-    update() { this.frame++; }
+    update() {
+        this.frame++;
+        for (const b of this.birds) {
+            b.x += b.vx;
+            b.y += b.vy + sin(this.frame * 0.07 + b.phase) * 0.5;
+        }
+    }
 
     draw() {
-        const alpha = this.frame < 60 ? 255 : map(this.frame, 60, this.duration, 255, 0);
-        const spread = min(this.frame * 1.5, 60);
-        stroke(233, 196, 106, alpha);
-        strokeWeight(2);
-        noFill();
-        push();
-        translate(this.x, this.y);
-        arc(-spread * 0.3, 0, spread, spread * 0.5, PI, TWO_PI);
-        arc(spread * 0.3, 0, spread, spread * 0.5, TWO_PI, PI + TWO_PI);
-        pop();
+        let alpha;
+        if (this.frame < 100) {
+            alpha = 255;
+        } else {
+            alpha = map(this.frame, 100, this.duration, 255, 0);
+        }
+
+        tint(255, alpha);
+        for (const b of this.birds) {
+            push();
+            if (b.flipped) {
+                scale(-1, 1);
+                image(this.vid, -(b.x+b.size/2), b.y-b.size/2, b.size, b.size);
+            } else {
+                image(this.vid, b.x-b.size/2, b.y-b.size/2, b.size, b.size);
+            }
+            pop();
+        }
+        noTint();
     }
 
-    isDone() { return this.frame >= this.duration; }
+    cleanup() {
+        this.vid.stop();
+        this.vid.remove();
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
+    }
 }
 
-// ─── Other ────────────────────────────────────────────────────────────────────
-// Generic particle burst.
-
+// other - generic particle burst.
 class Other {
     constructor(x, y) {
         this.x = x;
