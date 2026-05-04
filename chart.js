@@ -1,15 +1,15 @@
 const COLOR_MAP = {
-  "Insecta": "#f4a261",
+  "Insecta": "#fcbd1d",
   "Magnoliopsida": "#2a9d8f",
   "Teleostei": "#1b628f",
-  "Mammalia": "#e5603f",
-  "Malacostraca": "#8ecae6",
+  "Mammalia": "#8ecae6",
+  "Malacostraca": "#e5603f",
   "Cephalopoda": "#6a4c93",
   "Euchelicerata": "#6ed333",
   "Gastropoda": "#8f584c",
   "Bivalvia": "#c7f69e",
   "Pinopsida": "#004e2d",
-  "Aves": "#fcbd1d",
+  "Aves": "#ff7ea0",
   "Other": "#d3d3d3",
   "No data": "none",
 };
@@ -273,7 +273,7 @@ Promise.all([
   const legendOrder = Object.keys(COLOR_MAP).filter(c => presentClasses.includes(c) || c === "No data");
 
   const legendEl = document.getElementById("legend");
-  legendEl.innerHTML = "<div style='font-size:0.72rem;color:#777;margin-bottom:5px;font-weight:600'>DOMINANT PREY CLASS</div>";
+  legendEl.innerHTML = "<div style='font-size:0.72rem;color:#6774ab;margin-bottom:5px;font-weight:600'>DOMINANT PREY CLASS</div>";
   legendOrder.forEach(cls => {
     const swatch = `<img src="${cls === "No data" ? "dots/nodata.png" : dotImg(cls)}" class="legend-swatch">`;
     legendEl.innerHTML += `<div>${swatch}${cls}</div>`;

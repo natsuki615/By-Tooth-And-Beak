@@ -1,5 +1,7 @@
 let currentAnim = null;
 let predator_prey_links = {};
+let videoCache = {};
+let imageCache = {};
 
 function preload() {
     predator_prey_links = loadJSON("data/aves_prey_links.json");
@@ -12,6 +14,7 @@ function setup() {
     canvas.style("left", "0");
     canvas.style("pointer-events", "none");
     canvas.style("z-index", "5");
+    // frameRate(20)
 
     window.onBirdClick = function(name, dominantClass, x, y) {
         if (currentAnim && currentAnim.cleanup) currentAnim.cleanup();
@@ -36,12 +39,43 @@ function setup() {
     };
 }
 
+function getVideo(path) {
+    if (!videoCache[path]) {
+        const v = createVideo(path);
+        v.hide();
+        v.loop();
+        v.volume(0);
+        v.play();
+        videoCache[path] = v;
+    }
+    videoCache[path].time(0);
+    videoCache[path].play();
+    return videoCache[path];
+}
+
+function releaseVideo(v) {
+    v.pause();
+    v.time(0);
+}
+
+function getImage(path) {
+    if (!imageCache[path]) {
+        imageCache[path] = loadImage(path);
+    }
+    return imageCache[path];
+}
+
 function draw() {
     clear();
-    if (currentAnim && !currentAnim.isDone()) {
+    if (currentAnim && currentAnim.isDone()) {
+        currentAnim = null;
+    }
+    if (currentAnim) {
         currentAnim.update();
         currentAnim.draw();
     }
+    // fill(255);
+    // text(frameRate(), 100, 50);
 }
 
 // Predator(36 birds) - shoots from origin toward each known prey bird's screen position
@@ -56,6 +90,7 @@ class Predator {
         this.y = y;
         this.frame = 0;
         this.duration = Predator.TRAVEL + Predator.HOLD + Predator.FADE + preyNames.length * 3;
+        this.arrowImg = getImage("anim/arrow.png");
 
         this.darts = preyNames
             .map((prey, i) => {
@@ -102,21 +137,13 @@ class Predator {
                     ? 255
                     : map(this.frame, dart.hitFrame + Predator.HOLD, dart.hitFrame + Predator.HOLD + Predator.FADE, 255, 0);
 
-            // tail + shaft
-            const tailLen = 12;
-            const tx = cx - cos(angle) * tailLen;
-            const ty = cy - sin(angle) * tailLen;
-            stroke(233, 196, 106, dartAlpha);
-            strokeWeight(1.5);
-            line(tx, ty, cx, cy);
-
-            // arrowhead
+            const arrowSize = 30;
             push();
             translate(cx, cy);
             rotate(angle);
-            fill(233, 196, 106, dartAlpha);
-            noStroke();
-            triangle(6, 0, -3, -3, -3, 3);
+            tint(255, dartAlpha);
+            image(this.arrowImg, -arrowSize / 2, -arrowSize / 2, arrowSize, arrowSize);
+            noTint();
             pop();
 
             // label + impact dot fade in after hit, fade out with dart
@@ -128,7 +155,7 @@ class Predator {
                 fill(233, 196, 106, lblAlpha * 0.4);
                 ellipse(dart.tx, dart.ty, 10, 10);
 
-                fill(233, 196, 106, lblAlpha);
+                fill(242, 237, 194, lblAlpha);
                 textSize(11);
                 textAlign(CENTER, TOP);
                 text(dart.name, dart.tx, dart.ty + 10);
@@ -146,11 +173,12 @@ class Insecta {
         this.duration = 160;
 
         // one video element as the shared image source for optimization
-        this.vid = createVideo("anim/insecta/bee.webm");
-        this.vid.hide(); // keep it out of the DOM visually
-        this.vid.loop();
-        this.vid.volume(0);
-        this.vid.play();
+        // this.vid = createVideo("anim/insecta/bee.webm");
+        // this.vid.hide(); // keep it out of the DOM visually
+        // this.vid.loop();
+        // this.vid.volume(0);
+        // this.vid.play();
+        this.vid = getVideo("anim/insecta/bee.webm");
 
         // bugs are just pos + vel, no separate video elements
         this.bugs = [];
@@ -210,8 +238,7 @@ class Insecta {
     }
 
     cleanup() {
-        this.vid.stop();
-        this.vid.remove();
+        releaseVideo(this.vid);
     }
 
     isDone() {
@@ -230,14 +257,7 @@ class Magnoliopsida {
         this.duration = 120;
 
         const seedTypes = ["chia", "millet", "pumpkin", "safflower", "sunflower"];
-        this.vids = seedTypes.map(type => {
-            const v = createVideo(`anim/magnoliopsida/${type}/output.webm`);
-            v.hide();
-            v.loop();
-            v.volume(0);
-            v.play();
-            return v;
-        });
+        this.vids = seedTypes.map(type => getVideo(`anim/magnoliopsida/${type}/output.webm`));
 
         this.seeds = [];
         let k = random(10, 15);
@@ -284,10 +304,7 @@ class Magnoliopsida {
     }
 
     cleanup() {
-        for (const v of this.vids) { 
-            v.stop(); 
-            v.remove(); 
-        }
+        for (const v of this.vids) releaseVideo(v);
     }
 
     isDone() {
@@ -308,11 +325,12 @@ class Teleostei {
         this.duration = 90;
 
         // // one video element as the shared image source for optimization
-        this.vid = createVideo("anim/gastropoda/output.webm");
-        this.vid.hide(); // keep it out of the DOM visually
-        this.vid.loop();
-        this.vid.volume(0);
-        this.vid.play();
+        // this.vid = createVideo("anim/teleostei/output.webm");
+        // this.vid.hide(); // keep it out of the DOM visually
+        // this.vid.loop();
+        // this.vid.volume(0);
+        // this.vid.play();
+        this.vid = getVideo("anim/teleostei/output.webm");
     }
 
     update() {
@@ -334,6 +352,44 @@ class Teleostei {
     }
 
     cleanup() {
+        releaseVideo(this.vid);
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
+    }
+}
+
+// mammalia
+class Mammalia {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.frame = 0;
+        this.duration = 90;
+        this.vid = createVideo("anim/mammalia/output.webm");
+        this.vid.hide();
+        this.vid.volume(0);
+        this.vid.play();
+    }
+
+    update() {
+        this.frame++;
+    }
+
+    draw() {
+        const alpha = this.frame < 60 ? 255 : map(this.frame, 60, this.duration, 255, 0);
+        const size = 240;
+        tint(255, alpha);
+        image(this.vid, this.x - size / 2, this.y - 3*size/4, size, size);
+        noTint();
+    }
+
+    cleanup() {
         this.vid.stop();
         this.vid.remove();
     }
@@ -347,82 +403,73 @@ class Teleostei {
     }
 }
 
-// mammalia: swooping arc — dives down and snaps back up like a raptor strike.
-class Mammalia {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.frame = 0;
-        this.duration = 70;
-        this.trail = [];
-    }
-
-    update() {
-        this.frame++;
-        const t = this.frame / this.duration;
-        const swoop = sin(t * PI) * 60;
-        const cx = this.x + (t - 0.5) * 80;
-        const cy = this.y + swoop;
-        this.trail.push({ x: cx, y: cy, age: 0 });
-        for (const p of this.trail) p.age++;
-    }
-
-    draw() {
-        const alpha = this.frame < 50 ? 255 : map(this.frame, 50, this.duration, 255, 0);
-        noFill();
-        for (const p of this.trail) {
-            const a = map(p.age, 0, 20, alpha, 0);
-            stroke(231, 111, 81, max(a, 0));
-            strokeWeight(2);
-            point(p.x, p.y);
-        }
-        const last = this.trail[this.trail.length - 1];
-        if (last) {
-            noStroke();
-            fill(231, 111, 81, alpha);
-            ellipse(last.x, last.y, 8, 8);
-        }
-    }
-
-    isDone() { 
-        return this.frame >= this.duration; 
-    }
-}
-
-// malacostraca - sideways probing dots spreading horizontally like shorebird feeding
+// malacostraca - crabs scuttling outward in all directions
 class Malacostraca {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
         this.frame = 0;
-        this.duration = 80;
-        this.probes = Array.from({ length: 12 }, (_, i) => ({
-            angle: map(i, 0, 12, PI * 0.75, PI * 1.25),
-            dist: 0,
-            speed: random(1.5, 3),
-        }));
+        this.duration = 200;
+
+        // this.vid = createVideo("anim/malacostraca/output.webm");
+        // this.vid.hide();
+        // this.vid.loop();
+        // this.vid.volume(0);
+        // this.vid.play();
+        this.vid = getVideo("anim/malacostraca/output.webm");
+
+        this.crabs = [];
+        let k = floor(random(4, 8));
+        for (let i = 0; i < k; i++) {
+            const angle = random(TWO_PI);
+            const speed = random(1, 2);
+            this.crabs.push({
+                x: x + random(-20, 20),
+                y: y + random(-20, 20),
+                vx: cos(angle) * speed,
+                vy: sin(angle) * speed,
+                phase: random(TWO_PI),
+                flipped: cos(angle) < 0,
+                size: random(20, 100),
+            });
+        }
     }
 
     update() {
         this.frame++;
-        for (const p of this.probes) {
-            p.dist = min(p.dist + p.speed, 50);
+        for (const b of this.crabs) {
+            b.x += b.vx;
+            b.y += b.vy + sin(this.frame * 0.07 + b.phase) * 0.4;
         }
     }
 
     draw() {
-        const alpha = this.frame < 60 ? 255 : map(this.frame, 60, this.duration, 255, 0);
-        noStroke();
-        fill(142, 202, 230, alpha);
-        for (const p of this.probes) {
-            const px = this.x + cos(p.angle) * p.dist;
-            const py = this.y + sin(p.angle) * p.dist;
-            ellipse(px, py, 6, 6);
+        let alpha;
+        if (this.frame < 100) {
+            alpha = 255;
+        } else {
+            alpha = map(this.frame, 100, this.duration, 255, 0);
         }
+
+        tint(255, alpha);
+        for (const b of this.crabs) {
+            push();
+            translate(b.x, b.y);
+            rotate(atan2(b.vy, b.vx));
+            image(this.vid, -b.size/2, -b.size/2, b.size, b.size);
+            pop();
+        }
+        noTint();
     }
 
-    isDone() { 
-        return this.frame >= this.duration; 
+    cleanup() {
+        releaseVideo(this.vid);
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
     }
 }
 
@@ -435,12 +482,13 @@ class Cephalopoda {
         this.duration = 100;
         this.inkParticles = [];
 
-        this.vid = createVideo("anim/cephalopoda/output.webm", () => {
-            this.vid.loop();
-            this.vid.volume(0);
-            this.vid.play();
-        });
-        this.vid.hide();
+        // this.vid = createVideo("anim/cephalopoda/output.webm", () => {
+        //     this.vid.loop();
+        //     this.vid.volume(0);
+        //     this.vid.play();
+        // });
+        // this.vid.hide();
+        this.vid = getVideo("anim/cephalopoda/output.webm");
 
         this.octopus = [];
         let k = random(3, 5);
@@ -504,8 +552,7 @@ class Cephalopoda {
     }
 
     cleanup() {
-        this.vid.stop();
-        this.vid.remove();
+        releaseVideo(this.vid);
     }
 
     isDone() {
@@ -526,11 +573,12 @@ class Euchelicerata {
         this.duration = 120;
 
         // one video element as the shared image source for optimization
-        this.vid = createVideo("anim/euchelicerata/output.webm");
-        this.vid.hide(); // keep it out of the DOM visually
-        this.vid.loop();
-        this.vid.volume(0);
-        this.vid.play();
+        // this.vid = createVideo("anim/euchelicerata/output.webm");
+        // this.vid.hide(); // keep it out of the DOM visually
+        // this.vid.loop();
+        // this.vid.volume(0);
+        // this.vid.play();
+        this.vid = getVideo("anim/euchelicerata/output.webm");
     }
 
     update() {
@@ -552,8 +600,7 @@ class Euchelicerata {
     }
 
     cleanup() {
-        this.vid.stop();
-        this.vid.remove();
+        releaseVideo(this.vid);
     }
 
     isDone() {
@@ -565,20 +612,15 @@ class Euchelicerata {
     }
 }
 
-// gastropoda - slow expanding ripple rings 
+// gastropoda - plays video centered at click point
 class Gastropoda {
     constructor(x, y) {
         this.x = x;
         this.y = y;
         this.frame = 0;
-        this.duration = 100;
+        this.duration = 140;
 
-        // one video element as the shared image source for optimization
-        this.vid = createVideo("anim/gastropoda/output.webm");
-        this.vid.hide(); // keep it out of the DOM visually
-        this.vid.loop();
-        this.vid.volume(0);
-        this.vid.play();
+        this.vid = getVideo("anim/gastropoda/output.webm");
     }
 
     update() {
@@ -586,22 +628,15 @@ class Gastropoda {
     }
 
     draw() {
-        let alpha;
-        if (this.frame < 60) {
-            alpha = 255;
-        } else {
-            alpha = map(this.frame, 60, this.duration, 255, 0);
-        }
-
-        const size = 240;
+        const alpha = this.frame < 80 ? 255 : map(this.frame, 80, this.duration, 255, 0);
+        const size = 260;
         tint(255, alpha);
         image(this.vid, this.x - size / 2, this.y - size / 2, size, size);
         noTint();
     }
 
     cleanup() {
-        this.vid.stop();
-        this.vid.remove();
+        releaseVideo(this.vid);
     }
 
     isDone() {
@@ -613,33 +648,45 @@ class Gastropoda {
     }
 }
 
-// bivalvia - two arcs pulsing open and closed (shells)
+// bivalvia - shell animation offset near the click point
 class Bivalvia {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
+        this.x = x + random(-50, 50);
+        this.y = y - random(200);
         this.frame = 0;
-        this.duration = 80;
+        this.duration = 100;
+
+        // this.vid = createVideo("anim/bivalvia/output.webm");
+        // this.vid.hide();
+        // this.vid.loop();
+        // this.vid.volume(0);
+        // this.vid.play();
+        this.vid = getVideo("anim/bivalvia/output.webm");
     }
 
-    update() { 
-        this.frame++; 
+    update() {
+        this.frame++;
     }
 
     draw() {
-        const alpha = this.frame < 60 ? 255 : map(this.frame, 60, this.duration, 255, 0);
-        const openAmount = sin(this.frame * 0.15) * 30 + 30;
-        stroke(181, 228, 140, alpha);
-        strokeWeight(2);
-        noFill();
-        push();
-        translate(this.x, this.y);
-        arc(0, 0, 40, 40, PI + radians(openAmount), TWO_PI);
-        arc(0, 0, 40, 40, 0, PI - radians(openAmount));
-        pop();
+        const alpha = this.frame < 70 ? 255 : map(this.frame, 70, this.duration, 255, 0);
+        const size = 360;
+        tint(255, alpha);
+        image(this.vid, this.x-size/2, this.y-size/2, size, size);
+        noTint();
     }
 
-    isDone() { return this.frame >= this.duration; }
+    cleanup() {
+        releaseVideo(this.vid);
+    }
+
+    isDone() {
+        if (this.frame >= this.duration) {
+            this.cleanup();
+            return true;
+        }
+        return false;
+    }
 }
 
 // pinopsida - needle-like seeds spiraling outward and falling
@@ -656,7 +703,7 @@ class Pinopsida {
             spin: random(-0.05, 0.05),
             len: random(16, 32),
         }));
-        this.pineImg = loadImage("anim/pinopsida/pine.png");
+        this.pineImg = getImage("anim/pinopsida/pine.png");
         this.cones = Array.from({ length: 5 }, () => ({
             angle: random(TWO_PI),
             r: random(5, 15),
@@ -713,11 +760,12 @@ class Aves {
         this.frame = 0;
         this.duration = 200;
 
-        this.vid = createVideo("anim/aves/output.webm");
-        this.vid.hide();
-        this.vid.loop();
-        this.vid.volume(0);
-        this.vid.play();
+        // this.vid = createVideo("anim/aves/output.webm");
+        // this.vid.hide();
+        // this.vid.loop();
+        // this.vid.volume(0);
+        // this.vid.play();
+        this.vid = getVideo("anim/aves/output.webm");
 
         // flock flies in a consistent horizontal direction
         const dir = random() > 0.5 ? 1 : -1;
@@ -767,8 +815,7 @@ class Aves {
     }
 
     cleanup() {
-        this.vid.stop();
-        this.vid.remove();
+        releaseVideo(this.vid);
     }
 
     isDone() {

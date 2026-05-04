@@ -2,8 +2,6 @@
 
 ![Title screen](doc/titlepage.png)
 
-[▶ Watch demo(phase 1)](doc/demo1.mov)
-
 An interactive visualization of bird diets using a dataset from the Avian Diet Database and bird images from Cornell Lab of Ornithology. Each dot is a bird species, positioned in 2D space by diet similarity, meaning birds that eat similar things cluster together.
 
 Hover over a dot to see the bird's name and top prey items, and click to trigger an animation based on what it eats.
